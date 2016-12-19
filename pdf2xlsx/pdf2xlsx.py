@@ -15,6 +15,18 @@ FILE_EXTENSION = '.pdf'
 Entry = namedtuple('Entry', ['kod', 'nev', 'ME', 'mennyiseg', 'BEgysegar',
                              'Kedv', 'NEgysegar', 'osszesen', 'AFA'])
 
+Invoice = namedtuple('Invoice', ['sorszam', 'kelt', 'fizetesihatar', 'vegosszeg'])
+
+SORSZAM_PATTERN = '[ ]*Számla sorszáma:([0-9]+)'
+SORSZAMPROG = re.compile(SORSZAM_PATTERN)
+
+KELT_PATTERN = '[ ]*Számla kelte:([0-9]{4}\.[0-9]{2}\.[0-9]{2}|[0-9]{2}\.[0-9]{2}\.[0-9]{4})'
+#KELT_PATTERN = '[ ]*Számla kelte:([0-9]{4}\.[0-9]{2}\.[0-9]{2})'
+KELTPROG = re.compile(KELT_PATTERN)
+
+FIZETESI_PATTERN = '[ ]*FIZETÉSI HATÁRIDÕ:([0-9]{4}\.[0-9]{2}\.[0-9]{2}|[0-9]{2}\.[0-9]{2}\.[0-9]{4})[ ]+([0-9]+\.?[0-9]*\.?[0-9]*)'
+FIZETESIPROG = re.compile(FIZETESI_PATTERN)
+
 KOD_PATTERN = '[ ]*([0-9]{6}-[0-9]{3})'
 KODPROG = re.compile(KOD_PATTERN)
 
@@ -31,6 +43,41 @@ ENTRY_PATTERN = "".join([KOD_PATTERN,  #termek kod
 
 EPROG = re.compile(ENTRY_PATTERN)
 
+def get_invoice():
+    """
+    Coroutine which recieves a pdf file line by line, and gets sorszam,
+    kelt, fizetesihatar and vegosszeg each after others.
+    After everything is collected it returns an Invoice object
+    """
+    sorszam = False
+    kelt = False
+    fizetesihatar = False
+    vegosszeg = False
+    line = ""
+    while True:
+        if not sorszam:
+            mo = SORSZAMPROG.match(line)
+            if mo:
+                sorszam = int(mo.group(1))
+                #print("Sorszam found: {}".format(sorszam))
+                line = yield sorszam
+        elif not kelt:
+            mo = KELTPROG.match(line)
+            if mo:
+                kelt = mo.group(1)
+                #print("kelt found: {}".format(kelt))
+                line = yield kelt
+        else:
+            mo = FIZETESIPROG.match(line)
+            if mo:
+                fizetesihatar = mo.group(1)
+                vegosszeg = int(mo.group(2).replace('.',''))
+                #print("fizetesi es vegosszeg found: {} {}".format(fizetesihatar, vegosszeg))
+                tmp_invo = Invoice(sorszam, kelt, fizetesihatar, vegosszeg)
+                while True:
+                    line = yield tmp_invo
+        line = yield None
+        
 def line2entry(pdfline):
     """
     Extracts entry information from the given line. Tries to search for nine different
@@ -81,6 +128,39 @@ def pdf2rawtxt(pdfile, entries):
                     tmp_str = line
                     entry_found = True
 
+def get_entries():
+    entry_found = False
+    tmp_str = ""
+    while True:
+        if not entry_found:
+            tmp_str = yield None
+        if KODPROG.match(tmp_str):
+            line = yield None
+            tmp_str = yield line2entry(" ".join([tmp_str, line]))
+            entry_found = True
+        else:
+            entry_found = False
+            
+
+def parse(pdfile, entries):
+    with open(pdfile, 'rb') as fd:
+        invoice_getter = get_invoice()
+        entry_getter = get_entries()
+        invo = next(invoice_getter)
+        entr = next(entry_getter)
+        tmp_input = PdfFileReader(fd)
+        for i in range(tmp_input.getNumPages()):
+            for line in tmp_input.getPage(i).extractText().split('\n'):
+                invo = invoice_getter.send(line)
+                entr = entry_getter.send(line)
+                if entr:
+                    entries.append(entr)
+
+        invoice_getter.close()
+        entry_getter.close()
+        return invo 
+    
+
 def _init_clean_up(tmp_dir='tmp'):
     """
     Create tmp directory, clean it up first if it already exists, if possible
@@ -89,7 +169,8 @@ def _init_clean_up(tmp_dir='tmp'):
     try:
         shutil.rmtree(tmp_dir)
     except FileNotFoundError as e:
-        print("The directory is not there, this was the exception\n {}".format(e))
+        # If everything goes OK there shouldunt be a directory to delete
+        pass
     finally:
         os.mkdir(tmp_dir)
 
@@ -124,7 +205,9 @@ def extract_invoce_entries(pdf_list):
     """
     invoice_entries = []
     for pdfile in pdf_list:
-        pdf2rawtxt(pdfile, invoice_entries)
+        #pdf2rawtxt(pdfile, invoice_entries)
+        invo = parse(pdfile, invoice_entries)
+        print(invo)
     return invoice_entries
 
 def _post_clean_up(tmp_dir='tmp'):
@@ -163,7 +246,7 @@ def main():
     pdf_list = get_pdf_files(os.path.join(os.getcwd(),TMP_DIR), FILE_EXTENSION)
 
     invoice_entries = extract_invoce_entries(pdf_list)
-
+    
     _post_clean_up(TMP_DIR)
 
     write_xls_file(invoice_entries)
