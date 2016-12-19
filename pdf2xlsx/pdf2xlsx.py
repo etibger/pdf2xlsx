@@ -6,6 +6,7 @@ import zipfile
 import re
 from collections import namedtuple
 from PyPDF2 import PdfFileReader
+import xlsxwriter
 
 TMP_DIR = 'tmp'
 SRC_NAME = 'src.zip'
@@ -48,7 +49,10 @@ def line2entry(pdfline):
     """
     try:
         tg = EPROG.match(pdfline).groups()
-        return Entry(tg[0], tg[1], tg[2], tg[3], tg[4], tg[5], tg[6], tg[7], tg[8])
+        return Entry(tg[0], tg[1], tg[2],
+                     int(tg[3]), int(tg[4].replace('.','')),
+                     int(tg[5]), int(tg[6].replace('.','')),
+                     int(tg[7].replace('.','')), int(tg[8]))
     except AttributeError as e:
         print("Entry pattern regex didn't match for line: {}".format(pdfline))
         raise e
@@ -60,7 +64,7 @@ def pdf2rawtxt(pdfile, entries):
     invoce entry line. This line is processed with line2entry.
     TODO: possibly it would be nice to refactor this as a generator to decouple it
     from line2entry function
-    
+
     :param str pdfile: file path of the pdf to process
     :param list entries: The found invoice entries will be appended to this list
     """
@@ -123,27 +127,49 @@ def extract_invoce_entries(pdf_list):
         pdf2rawtxt(pdfile, invoice_entries)
     return invoice_entries
 
-def _post_clean_up(tmp_dir='tmp'):   
+def _post_clean_up(tmp_dir='tmp'):
     """
     Cleanup after execution, remove the extracted zip file and tmp directory
     :param str tmp_dir: Temporary directory to clean_up
     """
     shutil.rmtree(tmp_dir)
 
+def write_xls_file(invoices):
+    workbook = xlsxwriter.Workbook('Invoices01.xlsx')
+    worksheet = workbook.add_worksheet()
+    row = 0
+    col = 0
+
+    for a,b,c,d,e,f,g,h,i in invoices:
+        worksheet.write(row, col, a)
+        worksheet.write(row, col + 1, b)
+        worksheet.write(row, col + 2, c)
+        worksheet.write(row, col + 3, d)
+        worksheet.write(row, col + 4, e)
+        worksheet.write(row, col + 5, f)
+        worksheet.write(row, col + 6, g)
+        worksheet.write(row, col + 7, h)
+        worksheet.write(row, col + 8, i)
+        row += 1
+
+    workbook.close()
+
+
 def main():
     _init_clean_up(TMP_DIR)
-    
+
     extract_zip(SRC_NAME, TMP_DIR)
 
     pdf_list = get_pdf_files(os.path.join(os.getcwd(),TMP_DIR), FILE_EXTENSION)
 
     invoice_entries = extract_invoce_entries(pdf_list)
 
-    for ie in invoice_entries:
-        print(ie)
-
     _post_clean_up(TMP_DIR)
-    
+
+    write_xls_file(invoice_entries)
+
     print("script has been finished")
 
+
 if __name__ == '__main__': main()
+
