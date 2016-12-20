@@ -15,6 +15,7 @@ import xlsxwriter
 
 TMP_DIR = 'tmp'
 SRC_NAME = 'src.zip'
+DST_DIR = ''
 FILE_EXTENSION = '.pdf'
 
 EntryTuple = namedtuple('EntryTuple', ['kod', 'nev', 'ME', 'mennyiseg', 'BEgysegar',
@@ -338,14 +339,14 @@ def _gen_header(worksheet, row, col):
     worksheet.write(row, col+TOTAL_SUM_INDENT, "Amount")
     return row+1, col
 
-def invoices2xlsx(invoices):
+def invoices2xlsx(invoices, dir=''):
     """
     Write invoice information to xlsx template file. Go through every invoce and
     write them out. Simple. Utilizes the xlsxwriter module
 
     :param invoices list of Invocie: Representation of invoices from the pdf files
     """
-    workbook = xlsxwriter.Workbook('Invoices01.xlsx')
+    workbook = xlsxwriter.Workbook(os.path.join(dir,'Invoices01.xlsx'))
     worksheet = workbook.add_worksheet()
     row = 0
     col = 0
@@ -355,24 +356,24 @@ def invoices2xlsx(invoices):
 
     workbook.close()
 
-def do_it():
-    _init_clean_up(TMP_DIR)
+def do_it( src_name, dst_dir='', tmp_dir='tmp', file_extension='.pdf'):
+    _init_clean_up(tmp_dir)
 
-    extract_zip(SRC_NAME, TMP_DIR)
+    extract_zip(src_name, tmp_dir)
 
-    pdf_list = get_pdf_files(os.path.join(os.getcwd(),TMP_DIR), FILE_EXTENSION)
+    pdf_list = get_pdf_files(os.path.join(os.getcwd(),tmp_dir), file_extension)
 
     invoice_list = extract_invoces(pdf_list)
 
-    _post_clean_up(TMP_DIR)
+    _post_clean_up(tmp_dir)
 
-    invoices2xlsx(invoice_list)
+    invoices2xlsx(invoice_list, dst_dir)
 
     print("script has been finished")
         
 
 def main():
-    do_it()
+    do_it(SRC_NAME, DST_DIR, TMP_DIR, FILE_EXTENSION)
 
 
 if __name__ == '__main__': main()
