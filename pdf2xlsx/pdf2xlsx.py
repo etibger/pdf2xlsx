@@ -156,6 +156,7 @@ class Entry:
     the tmp_str attribute is used to store the first part of the entire
 
     :param EntryTuple entry_tuple: The invoice entry
+    :param Invoice invo: The parent invoice containing this entry
     """
     CODE_PATTERN = '[ ]*([0-9]{6}-[0-9]{3})'
     CODE_CMP = re.compile(CODE_PATTERN)
@@ -171,8 +172,9 @@ class Entry:
     ])
     ENTRY_CMP = re.compile(ENTRY_PATTERN)
 
-    def __init__(self, entry_tuple=None):
+    def __init__(self, entry_tuple=None, invo=None):
         self.entry_tuple = entry_tuple
+        self.invo = invo
 
         self.entry_found = False
         self.new_entry = False
@@ -235,6 +237,30 @@ class Entry:
             self.tmp_str = line
             self.entry_found = True
 
+    def xlsx_write(self, worksheet, row, col):
+        """
+        Write the entry information to a template xlsx file.
+
+        :param Worksheet worksheet: Worksheet class to write info
+        :param int row: Row number to start writing
+        :param int col: Column number to start writing
+
+        :return: the next position of cursor row,col
+        :rtype: tuple of (int,int)
+        """
+        worksheet.write(row, col, self.invo.no)
+        worksheet.write(row, col+1, self.entry_tuple.kod)
+        worksheet.write(row, col+2, self.entry_tuple.nev)
+        worksheet.write(row, col+3, self.entry_tuple.ME)
+        worksheet.write(row, col+4, self.entry_tuple.mennyiseg)
+        worksheet.write(row, col+5, self.entry_tuple.BEgysegar)
+        worksheet.write(row, col+6, self.entry_tuple.Kedv)
+        worksheet.write(row, col+7, self.entry_tuple.NEgysegar)
+        worksheet.write(row, col+8, self.entry_tuple.osszesen)
+        worksheet.write(row, col+9, self.entry_tuple.AFA)
+        return row+1, col
+
+
 #[TODO] Put this to a manager class???
 def pdf2rawtxt(pdfile):
     """
@@ -250,7 +276,7 @@ def pdf2rawtxt(pdfile):
     with open(pdfile, 'rb') as fd:
         tmp_input = PdfFileReader(fd)
         invo = Invoice(entries=[])
-        entry = Entry()
+        entry = Entry(invo=invo)
         for i in range(tmp_input.getNumPages()):
             for line in tmp_input.getPage(i).extractText().split('\n'):
                 invo.parse_line(line)
@@ -348,11 +374,16 @@ def invoices2xlsx(invoices, dir=''):
     """
     workbook = xlsxwriter.Workbook(os.path.join(dir,'Invoices01.xlsx'))
     worksheet = workbook.add_worksheet()
+    ws2 =  workbook.add_worksheet()
     row = 0
     col = 0
+    r1 = 0
+    c1 = 0
     row, col = _gen_header(worksheet, row, col)
     for invo in invoices:
         row, col = invo.xlsx_write(worksheet, row, col)
+        for entr in invo.entries:
+            r1, c1 = entr.xlsx_write(ws2, r1, c1)
 
     workbook.close()
 
