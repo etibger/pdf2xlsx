@@ -17,6 +17,7 @@ TMP_DIR = 'tmp'
 SRC_NAME = 'src.zip'
 DST_DIR = ''
 FILE_EXTENSION = '.pdf'
+XLSX_NAME= 'Invoices01.xlsx'
 
 EntryTuple = namedtuple('EntryTuple', ['kod', 'nev', 'ME', 'mennyiseg', 'BEgysegar',
                              'Kedv', 'NEgysegar', 'osszesen', 'AFA'])
@@ -24,6 +25,24 @@ NO_INDENT = 1
 ORIG_DATE_INDENT = 2
 PAY_DUE_INDENT = 3
 TOTAL_SUM_INDENT = 4
+
+
+def list2row(worksheet, row, col, values=[], positions=[]):
+    """
+    Create header of the template xlsx file
+
+    :param Worksheet worksheet: Worksheet class to write info
+    :param int row: Row number to start writing
+    :param int col: Column number to start writing
+
+    :return: the next position of cursor row,col
+    :rtype: tuple of (int,int)
+    """
+    if not positions or len(positions) != len(values):
+        positions = range(len(values))
+    for v,p in zip(values,positions):
+        worksheet.write(row, col+p, v)
+    return row+1, col
 
 class Invoice:
     """
@@ -139,12 +158,12 @@ class Invoice:
 
         :return: the next position of cursor row,col
         :rtype: tuple of (int,int)
-        """
-        worksheet.write(row, col+NO_INDENT, self.no)
-        worksheet.write(row, col+ORIG_DATE_INDENT, self.orig_date)
-        worksheet.write(row, col+PAY_DUE_INDENT, self.pay_due)
-        worksheet.write(row, col+TOTAL_SUM_INDENT, self.total_sum)
-        return row+1, col
+        """    
+        values = [self.no, self.orig_date, self.pay_due, self.total_sum]
+        positions = [NO_INDENT, ORIG_DATE_INDENT, PAY_DUE_INDENT,
+                 TOTAL_SUM_INDENT]
+        row, col = list2row(worksheet, row, col, values, positions)
+        return row, col
 
 
 class Entry:
@@ -248,17 +267,9 @@ class Entry:
         :return: the next position of cursor row,col
         :rtype: tuple of (int,int)
         """
-        worksheet.write(row, col, self.invo.no)
-        worksheet.write(row, col+1, self.entry_tuple.kod)
-        worksheet.write(row, col+2, self.entry_tuple.nev)
-        worksheet.write(row, col+3, self.entry_tuple.ME)
-        worksheet.write(row, col+4, self.entry_tuple.mennyiseg)
-        worksheet.write(row, col+5, self.entry_tuple.BEgysegar)
-        worksheet.write(row, col+6, self.entry_tuple.Kedv)
-        worksheet.write(row, col+7, self.entry_tuple.NEgysegar)
-        worksheet.write(row, col+8, self.entry_tuple.osszesen)
-        worksheet.write(row, col+9, self.entry_tuple.AFA)
-        return row+1, col
+        values = [self.invo.no] + list(self.entry_tuple._asdict().values())
+        row, col = list2row(worksheet, row, col, values)
+        return row, col
 
 
 #[TODO] Put this to a manager class???
@@ -347,47 +358,54 @@ def _post_clean_up(tmp_dir='tmp'):
     :param str tmp_dir: Temporary directory to clean_up
     """
     shutil.rmtree(tmp_dir)
+    
 
-def _gen_header(worksheet, row, col):
-    """
-    Create header of the template xlsx file
-
-    :param Worksheet worksheet: Worksheet class to write info
-    :param int row: Row number to start writing
-    :param int col: Column number to start writing
-
-    :return: the next position of cursor row,col
-    :rtype: tuple of (int,int)
-    """
-    worksheet.write(row, col+NO_INDENT, "Invoice Number")
-    worksheet.write(row, col+ORIG_DATE_INDENT, "Date of Invoice")
-    worksheet.write(row, col+PAY_DUE_INDENT, "Payment Date")
-    worksheet.write(row, col+TOTAL_SUM_INDENT, "Amount")
-    return row+1, col
-
-def invoices2xlsx(invoices, dir=''):
+def invoices2xlsx(invoices, dir='', name='Invoices01.xlsx'):
     """
     Write invoice information to xlsx template file. Go through every invoce and
     write them out. Simple. Utilizes the xlsxwriter module
 
     :param invoices list of Invocie: Representation of invoices from the pdf files
     """
-    workbook = xlsxwriter.Workbook(os.path.join(dir,'Invoices01.xlsx'))
-    worksheet = workbook.add_worksheet()
-    ws2 =  workbook.add_worksheet()
-    row = 0
-    col = 0
-    r1 = 0
-    c1 = 0
-    row, col = _gen_header(worksheet, row, col)
+    workbook = xlsxwriter.Workbook(os.path.join(dir,name))
+    worksheet_invo = workbook.add_worksheet()
+    worksheet_entr = workbook.add_worksheet()
+    row_invo = col_invo = row_entr = col_entr = 0
+    
+    labels = ["Invoice Number", "Date of Invoice", "Payment Date", "Amount"]
+    positions = [NO_INDENT, ORIG_DATE_INDENT, PAY_DUE_INDENT,
+                 TOTAL_SUM_INDENT]
+    row_invo, col_invo = list2row(worksheet_invo, row_invo,
+                                             col_invo, labels, positions)
+    
+    labels = ["Invoice Number"] + list(EntryTuple._fields)
+    row_entr, col_entr = list2row(worksheet_entr, row_entr,
+                                             col_entr, labels)
+    #[TODO] there is no specification how to write out invocie entries yet
     for invo in invoices:
-        row, col = invo.xlsx_write(worksheet, row, col)
+        row_invo, col_invo = invo.xlsx_write(worksheet_invo, row_invo, col_invo)
         for entr in invo.entries:
-            r1, c1 = entr.xlsx_write(ws2, r1, c1)
+            row_entr, col_entr = entr.xlsx_write(worksheet_entr, row_entr, col_entr)
 
     workbook.close()
 
-def do_it( src_name, dst_dir='', tmp_dir='tmp', file_extension='.pdf'):
+def do_it( src_name, dst_dir='', xlsx_name='Invoices01.xlsx',
+           tmp_dir='tmp', file_extension='.pdf'):
+    """
+    Main script to manage the zip to xls process. It is responsible to create/cleanup
+    temporary directories and files. After zip extraction, seraches every file which
+    ends with `file_extension` Then it builds up a list of invoices and writes them
+    to xlsx format.
+
+    :param str src_name: path to the zip file to extract
+    :param str dst_dir: path to the directory to put the generated xlsx file by default
+        the cwd
+    :param str tmp_dir: temporary directory to work in. **This directory is erased
+        at the beginning of the script** By default it is `tmp`
+    :param str file_extension: the file extension to use during file selection. By
+        default it is `.pdf`
+    :param str xlsx_name: Name of the oputput file
+    """
     _init_clean_up(tmp_dir)
 
     extract_zip(src_name, tmp_dir)
@@ -404,7 +422,7 @@ def do_it( src_name, dst_dir='', tmp_dir='tmp', file_extension='.pdf'):
         
 
 def main():
-    do_it(SRC_NAME, DST_DIR, TMP_DIR, FILE_EXTENSION)
+    do_it(SRC_NAME, dst_dir=DST_DIR, xlsx_name=XLSX_NAME, tmp_dir=TMP_DIR, file_extension=FILE_EXTENSION)
 
 
 if __name__ == '__main__': main()
