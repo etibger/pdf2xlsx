@@ -56,7 +56,7 @@ class Invoice:
     :param str orig_date: Invoice date stored as a string YYYY.MM.DD
     :param str pay_due: Payment Date stored as string YYYY.MM.DD
     :param int total_sum: Total price of invoice
-    :param list of **Entry** entries: List containing each entries in invoice
+    :param list entries: List of :class:`Entry` containing each entries in invoice
 
     
     [TODO] use proper datetime instead of string representation
