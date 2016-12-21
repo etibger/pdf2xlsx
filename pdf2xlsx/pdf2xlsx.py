@@ -211,10 +211,11 @@ class Entry:
         Extracts entry information from the given line. Tries to search for nine different
         group in the line. See implementation of ENTRY_PATTERN. This should match the
         following pattern:
-        NNNNNN-NNN STR+WSPACE PREDEFSTR INTEGER INTEGER-. INTEGER% INTEGER-. INTEGER-. INTEGER%
+        NNNNNN-NNN STR+WSPACE PREDEFSTR INTEGER INTEGER-. INTEGER% INTEGER-. INTEGER-.
+        INTEGER%
         Where:
         N: a single digit: 0-9
-        STR+WSPACE: string containing white spaces, possibly numbers and special characters
+        STR+WSPACE: string containing white spaces, numbers and special characters
         PREDEFSTR: string without white space ( predefined )
         INTEGER: decimal number, unknown length
         INTEGER-.: a decimal number, grouped with . by thousends e.g 1.589.674
@@ -422,7 +423,8 @@ def do_it( src_name, dst_dir='', xlsx_name='Invoices01.xlsx',
         
 
 def main():
-    do_it(SRC_NAME, dst_dir=DST_DIR, xlsx_name=XLSX_NAME, tmp_dir=TMP_DIR, file_extension=FILE_EXTENSION)
+    do_it(SRC_NAME, dst_dir=DST_DIR, xlsx_name=XLSX_NAME,
+          tmp_dir=TMP_DIR, file_extension=FILE_EXTENSION)
 
 
 if __name__ == '__main__': main()
