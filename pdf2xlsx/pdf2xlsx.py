@@ -26,6 +26,31 @@ ORIG_DATE_INDENT = 2
 PAY_DUE_INDENT = 3
 TOTAL_SUM_INDENT = 4
 
+class StatLogger():
+    """
+    Collect statistic about the zip to xlsx process. Assembles a list containin invoice
+    number of items. Every item is the number of entries found during the invoice parsing.
+    """
+    def __init__(self):
+        self.invo_list = []
+
+    def __str__(self):
+        return '{invo_list}'.format(**self.__dict__)
+
+    def new_invo(self):
+        """
+        When a new invoice was found create a new invoice log instance
+        The current implementation is a simple list of numbers
+        """
+        self.invo_list.append(0)
+
+    def new_entr(self):
+        """
+        When a new entry was found increase the entry counter for the current
+        invoice.
+        """
+        self.invo_list[-1] += 1
+
 
 def list2row(worksheet, row, col, values=[], positions=[]):
     """
@@ -44,7 +69,7 @@ def list2row(worksheet, row, col, values=[], positions=[]):
         worksheet.write(row, col+p, v)
     return row+1, col
 
-class Invoice:
+class Invoice():
     """
     Parse, store and write to xlsx invoce informations. Such as Invoice Number,
     Invoice Date, Payment Date, Total Sum Price. It also contains a list of Entry,
@@ -130,23 +155,30 @@ class Invoice:
         the class attributes
         
         :param str line: The actual line to parse
+
+        :return: True when the parsing of the Invoice was started
+        :rtype: bool
         """
         if not self.no_parsed:
             mo = self.NO_CMP.match(line)
             if mo:
                 self.no = int(mo.group(1))
                 self.no_parsed = True
+                return True
         elif not self.orig_date_parsed:
             mo = self.ORIG_DATE_CMP.match(line)
             if mo:
                 self.orig_date = self._normalize_str_date(mo.group(1))
                 self.orig_date_parsed = True
+                return False
         elif not self.pay_due_parsed:
             mo = self.PAY_DUE_CMP.match(line)
             if mo:
                 self.pay_due = self._normalize_str_date(mo.group(1))
                 self.total_sum = int(mo.group(2).replace('.',''))
                 self.pay_due_parsed = True
+                return False
+        return False
 
     def xlsx_write(self, worksheet, row, col):
         """
@@ -166,12 +198,11 @@ class Invoice:
         return row, col
 
 
-class Entry:
+class Entry():
     """
     Parse, store and write to xlsx invoice entries. The invoice informations are
     stored in the EntryTuple namedtuple. The parsing is contolled by a state
-    variable (:entry_found:), and when a new entry is pared it is singald by the
-    new_entry attribute. Because the invoice entries are split into two line,
+    variable (:entry_found:) Because the invoice entries are split into two line,
     the tmp_str attribute is used to store the first part of the entire
 
     :param EntryTuple entry_tuple: The invoice entry
@@ -196,7 +227,6 @@ class Entry:
         self.invo = invo
 
         self.entry_found = False
-        self.new_entry = False
         self.tmp_str = ""
 
     def __str__(self):
@@ -247,15 +277,20 @@ class Entry:
         <disinterested rubish>
         When the Invoice code is found, an additional line is waited, and then it is
         sent to the line2entry converter.
+        
+        :param str line: The actual line to parse
+
+        :return: True when an entry was found
+        :rtype: bool
         """
-        self.new_entry = False
         if self.entry_found:
             self.entry_tuple = self.line2entry(" ".join([self.tmp_str, line]))
             self.entry_found = False
-            self.new_entry = True
+            return True
         elif self.CODE_CMP.match(line):
             self.tmp_str = line
             self.entry_found = True
+        return False
 
     def xlsx_write(self, worksheet, row, col):
         """
@@ -274,13 +309,14 @@ class Entry:
 
 
 #[TODO] Put this to a manager class???
-def pdf2rawtxt(pdfile):
+def pdf2rawtxt(pdfile, logger):
     """
     Read out the given pdf file to Invoice and Entry classes to parse it. Utilize
     PyPFD2 PdfFileReader. Go through every page of the pdf. When a new invoice
     entry was found by the Entry.parse_line it is appended to the Invoice.entries
 
     :param str pdfile: file path of the pdf to process
+    :param logger: :class:`StatLogger`, collect statistical data about parsing
 
     :return: The invoice entry filled up with the information from pdf file
     :rtype: :class:`Invoice`
@@ -291,10 +327,11 @@ def pdf2rawtxt(pdfile):
         entry = Entry(invo=invo)
         for i in range(tmp_input.getNumPages()):
             for line in tmp_input.getPage(i).extractText().split('\n'):
-                invo.parse_line(line)
-                entry.parse_line(line)
-                if(entry.new_entry):
+                if invo.parse_line(line):
+                    logger.new_invo()
+                if(entry.parse_line(line)):
                     invo.entries.append(deepcopy(entry))
+                    logger.new_entr()
         return invo
 
 def _init_clean_up(tmp_dir='tmp'):
@@ -337,19 +374,20 @@ def get_pdf_files(dir, extension='.pdf'):
                 pdf_list.append(os.path.join(dir_path, filename))
     return pdf_list
 
-def extract_invoces(pdf_list):
+def extract_invoces(pdf_list, logger):
     """
     Get the invoices from the pdf files in th pdf_list
     Wrapper around the pdf2rawtxt call
     
     :param list pdf_list: List of pdf files path to process.
+    :param logger: :class:`StatLogger`, collect statistical data about parsing
 
     :return: list of invoices
     :rtype: list of :class:`Invoice`
     """
     invoice_list = []
     for pdfile in pdf_list:
-        invoice_list.append(pdf2rawtxt(pdfile))
+        invoice_list.append(pdf2rawtxt(pdfile, logger))
     return invoice_list
 
 def _post_clean_up(tmp_dir='tmp'):
@@ -413,12 +451,14 @@ def do_it( src_name, dst_dir='', xlsx_name='Invoices01.xlsx',
 
     pdf_list = get_pdf_files(os.path.join(os.getcwd(),tmp_dir), file_extension)
 
-    invoice_list = extract_invoces(pdf_list)
+    logger = StatLogger()
+    
+    invoice_list = extract_invoces(pdf_list, logger)
 
     _post_clean_up(tmp_dir)
 
     invoices2xlsx(invoice_list, dst_dir)
-
+    print(logger)
     print("script has been finished")
         
 
