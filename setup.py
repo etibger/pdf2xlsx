@@ -65,8 +65,6 @@ setup(
     # for example:
     # $ pip install -e .[dev,test]
     extras_require={
-    'doc': ['Sphinx', 'autodoc'],
-    'test': ['pytest'],
-    'freezing': ['cx-Freeze>=5']
+        'doc': ['Sphinx', 'autodoc'],
     },
 )
