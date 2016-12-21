@@ -2,9 +2,9 @@
 import sys
 
 try:
-    from setuptools import setup, Command
+    from setuptools import setup, find_packages
 except ImportError:
-    from distutils.core import setup, Command
+    from distutils.core import setup, find_packages
 
 if sys.version_info < (3, 5, 0):
     warn("The minimum Python version supported by pdf2xlsx is 3.5.")
