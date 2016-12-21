@@ -31,10 +31,10 @@ setup(
     author="Tibor Gerlai",
     author_email="tibor.gerlai@gmail.com",
 
-    license='MIT'
+    license='MIT',
 
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
-    classifiers = [
+    classifiers=[
         "Development Status :: 2 - Pre-Alpha",
         "Environment :: Console",
         "Environment :: Win32 (MS Windows)",
