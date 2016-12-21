@@ -12,7 +12,7 @@ from copy import deepcopy
 from collections import namedtuple
 from PyPDF2 import PdfFileReader
 import xlsxwriter
-
+from .logger import StatLogger
 
 TMP_DIR = 'tmp'
 SRC_NAME = 'src.zip'
@@ -26,32 +26,6 @@ NO_INDENT = 1
 ORIG_DATE_INDENT = 2
 PAY_DUE_INDENT = 3
 TOTAL_SUM_INDENT = 4
-
-class StatLogger():
-    """
-    Collect statistic about the zip to xlsx process. Assembles a list containin invoice
-    number of items. Every item is the number of entries found during the invoice parsing.
-    """
-    def __init__(self):
-        self.invo_list = []
-
-    def __str__(self):
-        return '{invo_list}'.format(**self.__dict__)
-
-    def new_invo(self):
-        """
-        When a new invoice was found create a new invoice log instance
-        The current implementation is a simple list of numbers
-        """
-        self.invo_list.append(0)
-
-    def new_entr(self):
-        """
-        When a new entry was found increase the entry counter for the current
-        invoice.
-        """
-        self.invo_list[-1] += 1
-
 
 def list2row(worksheet, row, col, values=[], positions=[]):
     """
