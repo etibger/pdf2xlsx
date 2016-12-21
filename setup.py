@@ -15,28 +15,58 @@ long_description = """
 """
 
 setup(
-        name="pdf2xlsx",
-        version="0.1",
-        author="Tibor Gerlai",
-        author_email="tibor.gerlai@gmail.com",
-        url="https://github.com/etibger/pdf2xlsx",
-        packages=['pdf2xlsx']
-        license='MIT'
-        description="Invoice extraction from zip",
-        long_description=long_description,
-        maintainer="Tibor Gerlai",
-        maintainer_email="tibor.gerlai@gmail.com",
-        classifiers = [
-            "Development Status :: 2 - Pre-Alpha",
-            "Environment :: Console",
-            "Environment :: Win32 (MS Windows)",
-            "Intended Audience :: End Users/Desktop",
-            "License :: OSI Approved :: MIT License",
-            "Natural Language :: English",
-            "Operating System :: Microsoft :: Windows",
-            "Programming Language :: Python :: 3.5",
-            "Programming Language :: Python :: 3 :: Only",
-            "Topic :: Office/Business :: Financial :: Spreadsheet",
-            ],
-        packages=["pdf2xlsx"],
-    )
+    name="pdf2xlsx",
+        
+    # Versions should comply with PEP440.  For a discussion on single-sourcing
+    # the version across setup.py and the project code, see
+    # https://packaging.python.org/en/latest/single_source_version.html
+    version="0.1",
+    
+    description="Invoice extraction from zip",
+    long_description=long_description,
+
+    url="https://github.com/etibger/pdf2xlsx",
+
+    # Author details
+    author="Tibor Gerlai",
+    author_email="tibor.gerlai@gmail.com",
+
+    license='MIT'
+
+    # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
+    classifiers = [
+        "Development Status :: 2 - Pre-Alpha",
+        "Environment :: Console",
+        "Environment :: Win32 (MS Windows)",
+        "Intended Audience :: End Users/Desktop",
+        "License :: OSI Approved :: MIT License",
+        "Natural Language :: English",
+        "Operating System :: Microsoft :: Windows",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3 :: Only",
+        "Topic :: Office/Business :: Financial :: Spreadsheet",
+        ],
+    
+    # What does your project relate to?
+    keywords='pdf to excel conversion',
+    
+    # You can just specify the packages manually here if your project is
+    # simple. Or you can use find_packages().
+    packages=find_packages(exclude=['contrib', 'docs', 'tests']),
+
+    # List run-time dependencies here.  These will be installed by pip when
+    # your project is installed. For an analysis of "install_requires" vs pip's
+    # requirements files see:
+    # https://packaging.python.org/en/latest/requirements.html
+    install_requires=['PyPDF2', 'XlsxWriter'],
+
+    # List additional groups of dependencies here (e.g. development
+    # dependencies). You can install these using the following syntax,
+    # for example:
+    # $ pip install -e .[dev,test]
+    extras_require={
+    'doc': ['Sphinx', 'autodoc'],
+    'test': ['pytest'],
+    'freezing': ['cx-Freeze>=5']
+    },
+)

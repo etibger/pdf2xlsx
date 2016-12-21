@@ -1,8 +1,9 @@
-""" Open a zip file containing pdf files, then parse the pdf file and
-put them in a xlsx file"""
 """
-Extract a zip file to a temporary directory
+Contains framework to upen Zip a zip file which contains multiple pdf files
+representing invoices. The invoices are parsed into Invoice and Entry (invoice
+entries) classes. These are converted to XLSX format.
 """
+
 import os
 import shutil
 import zipfile
