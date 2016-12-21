@@ -9,19 +9,19 @@ except ImportError:
 if sys.version_info < (3, 5, 0):
     warn("The minimum Python version supported by pdf2xlsx is 3.5.")
     exit()
-    
+
 long_description = """
     Extract zip, search for pdf, get invoices from pdf, write them to xlsx file
 """
 
 setup(
     name="pdf2xlsx",
-        
+
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
     version="0.1.0",
-    
+
     description="Invoice extraction from zip",
     long_description=long_description,
 
@@ -29,7 +29,7 @@ setup(
 
     # Author details
     author="Tibor Gerlai",
-    author_email="tibor.gerlai@gmail.com",
+    author_email="tibi.gerlai@gmail.com",
 
     license='MIT',
 
@@ -46,10 +46,10 @@ setup(
         "Programming Language :: Python :: 3 :: Only",
         "Topic :: Office/Business :: Financial :: Spreadsheet",
         ],
-    
+
     # What does your project relate to?
     keywords='pdf to excel conversion',
-    
+
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
     packages=find_packages(exclude=['contrib', 'docs', 'tests']),
