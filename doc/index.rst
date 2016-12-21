@@ -10,8 +10,9 @@ Welcome to pdf2xlsx's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-.. automodule:: pdf2xlsx.pdf2xlsx
-   :members:
+   pdf2xlsx.rst
+   gui.rst
+   logger.rst
 
 Indices and tables
 ==================

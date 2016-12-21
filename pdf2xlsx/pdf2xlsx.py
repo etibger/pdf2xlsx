@@ -460,6 +460,7 @@ def do_it( src_name, dst_dir='', xlsx_name='Invoices01.xlsx',
     invoices2xlsx(invoice_list, dst_dir)
     print(logger)
     print("script has been finished")
+    return logger
         
 
 def main():
