@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """ setup """
 __all__ = ["pdf2xlsx"]
 from .pdf2xlsx import do_it

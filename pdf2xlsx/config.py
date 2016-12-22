@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Configuration structure, loading and storing
 """

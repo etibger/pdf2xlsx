@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import pytest
 import os
 import pdf2xlsx.pdf2xlsx

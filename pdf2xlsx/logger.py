@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Statistics collector helper class for pdf2xlsx
 """

@@ -3,6 +3,7 @@ Simple tkinter based gui around the pdf2xlsx.do_it function.
 """
 from tkinter import *
 from tkinter import ttk, filedialog, messagebox
+# -*- coding: utf-8 -*-
 from .pdf2xlsx import do_it
 from .config import config
 

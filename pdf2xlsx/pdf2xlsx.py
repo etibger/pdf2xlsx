@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Contains framework to upen Zip a zip file which contains multiple pdf files
 representing invoices. The invoices are parsed into Invoice and Entry (invoice

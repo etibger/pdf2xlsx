@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Fire up the GUI by default
 """
