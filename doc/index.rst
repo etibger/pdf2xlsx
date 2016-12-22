@@ -13,6 +13,7 @@ Welcome to pdf2xlsx's documentation!
    pdf2xlsx.rst
    gui.rst
    logger.rst
+   config.rst
 
 Indices and tables
 ==================

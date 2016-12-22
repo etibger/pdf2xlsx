@@ -13,19 +13,13 @@ from collections import namedtuple
 from PyPDF2 import PdfFileReader
 import xlsxwriter
 from .logger import StatLogger
+from .config import config
 
-TMP_DIR = 'tmp'
 SRC_NAME = 'src.zip'
 DST_DIR = ''
-FILE_EXTENSION = '.pdf'
-XLSX_NAME= 'Invoices01.xlsx'
 
 EntryTuple = namedtuple('EntryTuple', ['kod', 'nev', 'ME', 'mennyiseg', 'BEgysegar',
                              'Kedv', 'NEgysegar', 'osszesen', 'AFA'])
-NO_INDENT = 1
-ORIG_DATE_INDENT = 2
-PAY_DUE_INDENT = 3
-TOTAL_SUM_INDENT = 4
 
 def list2row(worksheet, row, col, values=[], positions=[]):
     """
@@ -167,8 +161,7 @@ class Invoice():
         :rtype: tuple of (int,int)
         """    
         values = [self.no, self.orig_date, self.pay_due, self.total_sum]
-        positions = [NO_INDENT, ORIG_DATE_INDENT, PAY_DUE_INDENT,
-                 TOTAL_SUM_INDENT]
+        positions = config['invo_header_ident']
         row, col = list2row(worksheet, row, col, values, positions)
         return row, col
 
@@ -387,8 +380,7 @@ def invoices2xlsx(invoices, dir='', name='Invoices01.xlsx'):
     row_invo = col_invo = row_entr = col_entr = 0
     
     labels = ["Invoice Number", "Date of Invoice", "Payment Date", "Amount"]
-    positions = [NO_INDENT, ORIG_DATE_INDENT, PAY_DUE_INDENT,
-                 TOTAL_SUM_INDENT]
+    positions = config['invo_header_ident']
     row_invo, col_invo = list2row(worksheet_invo, row_invo,
                                              col_invo, labels, positions)
     
@@ -432,15 +424,15 @@ def do_it( src_name, dst_dir='', xlsx_name='Invoices01.xlsx',
 
     _post_clean_up(tmp_dir)
 
-    invoices2xlsx(invoice_list, dst_dir)
+    invoices2xlsx(invoice_list, dst_dir, name=xlsx_name)
     print(logger)
     print("script has been finished")
     return logger
         
 
 def main():
-    do_it(SRC_NAME, dst_dir=DST_DIR, xlsx_name=XLSX_NAME,
-          tmp_dir=TMP_DIR, file_extension=FILE_EXTENSION)
+    do_it(SRC_NAME, dst_dir=DST_DIR, xlsx_name=config['xlsx_name'],
+          tmp_dir=config['tmp_dir'], file_extension=config['file_extension'])
 
 
 if __name__ == '__main__': main()

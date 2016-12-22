@@ -4,6 +4,7 @@ Simple tkinter based gui around the pdf2xlsx.do_it function.
 from tkinter import *
 from tkinter import ttk, filedialog, messagebox
 from .pdf2xlsx import do_it
+from .config import config
 
 __version__ = '0.1.0'
 
@@ -66,7 +67,10 @@ class PdfXlsxGui():
         the other parameters are left for defaults.
         """
         try:
-            logger = do_it(self.src_entry.get(),self.dest_entry.get())
+            logger = do_it(self.src_entry.get(),self.dest_entry.get(),
+                           xlsx_name=config['xlsx_name'], tmp_dir=config['tmp_dir'],
+                           file_extension=config['file_extension'])
+            
             messagebox.showinfo(title = 'Conversion Completed',
                             message = 'The following Invoices/Entries were found:\n{0!s}'.format(logger))
         except PermissionError as e:
