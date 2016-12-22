@@ -9,6 +9,69 @@ from .config import config
 
 __version__ = '0.1.0'
 
+class ConfigWindow():
+    def __init__(self, master):
+        self.master = master
+        self.window = Toplevel(self.master)
+        self.window.withdraw()
+        self.window.title('Settings...')
+        
+        self.main_frame = ttk.Frame(self.window)
+        self.main_frame.pack(padx = 5, pady = 5)
+
+        ttk.Label(self.main_frame, text = 'Configuration:').grid(row = 0, column = 0, columnspan=2, sticky = 'w') 
+
+        ttk.Label(self.main_frame, text = 'tmp dir:').grid(row = 1, column = 0, sticky = 'w')    
+        self.tmp_dir_sv = StringVar()
+        self.tmp_dir_sv.set(config['tmp_dir'])
+        self.tmp_dir_entry = ttk.Entry(self.main_frame, textvariable=self.tmp_dir_sv)
+        self.tmp_dir_entry.grid(row = 1, column = 1, sticky = 'e')
+
+        ttk.Label(self.main_frame, text = 'file ext:').grid(row = 2, column = 0, sticky = 'w')    
+        self.file_ext_sv = StringVar()
+        self.file_ext_sv.set(config['file_extension'])
+        self.file_ext_entry = ttk.Entry(self.main_frame, textvariable=self.file_ext_sv)
+        self.file_ext_entry.grid(row = 2, column = 1, sticky = 'e')
+
+        ttk.Label(self.main_frame, text = 'xlsx name:').grid(row = 3, column = 0, sticky = 'w')    
+        self.xlsx_name_sv = StringVar()
+        self.xlsx_name_sv.set(config['xlsx_name'])
+        self.xlsx_name_entry = ttk.Entry(self.main_frame, textvariable=self.xlsx_name_sv)
+        self.xlsx_name_entry.grid(row = 3, column = 1, sticky = 'e')
+
+        ttk.Label(self.main_frame, text = 'invo header pos:').grid(row = 4, column = 0, sticky = 'w')    
+        self.invo_head_pos_sv = StringVar()
+        self.invo_head_pos_sv.set(", ".join(map(str,config['invo_header_ident'])))
+        self.invo_head_pos_entry = ttk.Entry(self.main_frame, textvariable=self.invo_head_pos_sv)
+        self.invo_head_pos_entry.grid(row = 4, column = 1, sticky = 'e')
+
+        ttk.Label(self.main_frame, text = 'ME category:').grid(row = 5, column = 0, sticky = 'w')    
+        self.me_cat_sv = StringVar()
+        self.me_cat_sv.set(", ".join(map(str,config['ME'])))
+        self.me_cat_entry = ttk.Entry(self.main_frame, textvariable=self.me_cat_sv)
+        self.me_cat_entry.grid(row = 5, column = 1, sticky = 'e')
+
+        #ttk.Style().configure("TButton", padding=6)
+        
+        self.bok = ttk.Button(self.main_frame, text = 'Save',
+                   command = self.save_callback).grid(row = 6, column = 0, sticky = 'e')
+
+        ttk.Button(self.main_frame, text = 'Accept',
+                   command = self.accept_callback).grid(row = 6, column = 1, sticky = 'w')
+
+    def save_callback(self):
+        self.window.withdraw()
+        self.accept_callback()
+
+    def accept_callback(self):
+        config['tmp_dir'] = self.tmp_dir_sv.get()
+        config['file_extension'] = self.file_ext_sv.get()
+        config['xlsx_name'] = self.xlsx_name_sv.get()
+        config['invo_header_ident'] = list(map(int,self.invo_head_pos_sv.get().split(', ')))
+        config['ME'] = self.me_cat_entry.get().split(', ')
+        config.store()
+        
+
 class PdfXlsxGui():
     """
     Simple GUI which lets the user select the source file zip and the desitination directory
@@ -41,7 +104,17 @@ class PdfXlsxGui():
               
         ttk.Button(self.main_frame, text = 'Convert to Xlsx',
                    command = self.process_pdf).grid(row = 5, column = 0, columnspan = 2)
-    
+
+
+        ttk.Button(self.main_frame, text = 'Settings',
+                   command = self.config_callback).grid(row = 6, column = 1, columnspan = 1, sticky='e')
+
+        self.config_window = ConfigWindow(self.master)
+
+    def config_callback(self):
+        self.config_window.window.state('normal')
+        print("button pushed")
+            
     def browse_src_callback(self):
         """
         Asks for the source zip file, the opened dialog filters for zip files by default

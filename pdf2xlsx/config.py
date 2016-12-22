@@ -6,11 +6,22 @@ from json import dumps, loads
 import os
 
 
+"""
+Calculate path to store config at
+"""
+try:
+    HOME = os.environ['HOME']
+except KeyError as e:
+    print("Home envirnment variable not set, use current working directory for config")
+    HOME = os.getcwd()
+
+CONF_DEFAULT_PATH = os.path.join(HOME,'.pdf2xlsx','config.txt')
+
 class JsonDict(dict):
     """
     Simple dict class extended with serialization functions, store and load
     """
-    def store(self, path):
+    def store(self, path=CONF_DEFAULT_PATH):
         """
         Store the actual configuration to config file (path)
 
@@ -19,7 +30,7 @@ class JsonDict(dict):
         with open(path, 'w', encoding="utf-8") as conf_out:
             conf_out.write(dumps(self, indent=4, ensure_ascii=False))
 
-    def load(self, path):
+    def load(self, path=CONF_DEFAULT_PATH):
         """
         Update the config from the config file (path)
 
@@ -35,17 +46,6 @@ config = JsonDict({
     'invo_header_ident' : [1,2,3,4],
     'ME' : ['Pár', 'Darab'],
 })
-
-"""
-Calculate path to store config at
-"""
-try:
-    HOME = os.environ['HOME']
-except KeyError as e:
-    print("Home envirnment variable not set, use current working directory for config")
-    HOME = os.getcwd()
-
-CONF_DEFAULT_PATH = os.path.join(HOME,'.pdf2xlsx','config.txt')
 
 def init_conf(conf=config, cfg_path=CONF_DEFAULT_PATH):
     """
