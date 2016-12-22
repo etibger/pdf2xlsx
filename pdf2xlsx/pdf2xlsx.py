@@ -8,7 +8,6 @@ import os
 import shutil
 import zipfile
 import re
-from copy import deepcopy
 from collections import namedtuple
 from PyPDF2 import PdfFileReader
 import xlsxwriter
@@ -172,30 +171,35 @@ class Entry():
     stored in the EntryTuple namedtuple. The parsing is contolled by a state
     variable (:entry_found:) Because the invoice entries are split into two line,
     the tmp_str attribute is used to store the first part of the entire
+    The ME values are configurable, so they cannot be created at class level, they
+    need to be recomputed at evry instantiation
 
     :param EntryTuple entry_tuple: The invoice entry
     :param Invoice invo: The parent invoice containing this entry
     """
+
     CODE_PATTERN = '[ ]*([0-9]{6}-[0-9]{3})'
     CODE_CMP = re.compile(CODE_PATTERN)
-    ENTRY_PATTERN = "".join([CODE_PATTERN,  #termek kod
-                 ("(.*)" #termek megnevezes
-                 "(Pár|Darab)" # ME
-                 "[ ]+([0-9]+)" # mennyiseg
-                 "[ ]+([0-9]+\.?[0-9]*)" # Brutto Egysegar
-                 "[ ]+([0-9]+)%" # Kedvezmeny
-                 "[ ]+([0-9]+\.?[0-9]*)" # Netto Egysegar
-                 "[ ]+([0-9]+\.?[0-9]*\.?[0-9]*)" # Osszesen
-                 "[ ]+([0-9]+)%") # Afa
-    ])
-    ENTRY_CMP = re.compile(ENTRY_PATTERN)
-
+    
     def __init__(self, entry_tuple=None, invo=None):
         self.entry_tuple = entry_tuple
         self.invo = invo
 
         self.entry_found = False
         self.tmp_str = ""
+        
+        self.ME_PATTERN = "".join(['(',"|".join(config['ME']),')'])
+        self.ENTRY_PATTERN = "".join([self.CODE_PATTERN,  #termek kod
+                     "(.*)", #termek megnevezes
+                     self.ME_PATTERN, # ME
+                     "[ ]+([0-9]+)", # mennyiseg
+                     "[ ]+([0-9]+\.?[0-9]*)", # Brutto Egysegar
+                     "[ ]+([0-9]+)%", # Kedvezmeny
+                     "[ ]+([0-9]+\.?[0-9]*)", # Netto Egysegar
+                     "[ ]+([0-9]+\.?[0-9]*\.?[0-9]*)", # Osszesen
+                     "[ ]+([0-9]+)%", # Afa
+        ])
+        self.ENTRY_CMP = re.compile(self.ENTRY_PATTERN)
 
     def __str__(self):
         return '{entry_tuple}'.format(**self.__dict__)
@@ -298,7 +302,8 @@ def pdf2rawtxt(pdfile, logger):
                 if invo.parse_line(line):
                     logger.new_invo()
                 if(entry.parse_line(line)):
-                    invo.entries.append(deepcopy(entry))
+                    invo.entries.append(entry)
+                    entry = Entry(invo=invo)
                     logger.new_entr()
         return invo
 

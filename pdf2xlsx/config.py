@@ -15,8 +15,8 @@ class JsonDict(dict):
 
         :param str path: Path and filename of the config file
         """
-        with open(path, 'w') as conf_out:
-            conf_out.write(dumps(self))
+        with open(path, 'w', encoding="utf-8") as conf_out:
+            conf_out.write(dumps(self, indent=4, ensure_ascii=False))
 
     def load(self, path):
         """
@@ -24,7 +24,7 @@ class JsonDict(dict):
 
         :param str path: Path and filename of the config file
         """
-        with open(path, 'r') as conf_in:
+        with open(path, 'r', encoding="utf-8") as conf_in:
             self.update(loads(conf_in.read()))
 
 config = JsonDict({
@@ -32,6 +32,7 @@ config = JsonDict({
     'file_extension' : 'pdf',
     'xlsx_name' : 'invoices.xlsx',
     'invo_header_ident' : [1,2,3,4],
+    'ME' : ['Pár', 'Darab'],
 })
 
 """
@@ -61,5 +62,3 @@ def init_conf(conf=config, cfg_path=CONF_DEFAULT_PATH):
             pass
         finally:
             conf.store(cfg_path)
-
-
