@@ -13,6 +13,7 @@ from collections import namedtuple
 from PyPDF2 import PdfFileReader
 import xlsxwriter
 from subprocess import run
+from datetime import datetime
 from .logger import StatLogger
 from .config import config
 
@@ -54,7 +55,6 @@ class Invoice():
     :param list entries: List of :class:`Entry` containing each entries in invoice
 
     
-    [TODO] use proper datetime instead of string representation
     [TODO] implement state pattern for parsing ???
     """
     
@@ -101,14 +101,12 @@ class Invoice():
 
         :param str strdate: string representation of the parsed date to normalize
 
-        :return: a string representing a date with the format YYYY.MM.DD
-        
-        [TODO] remove this function when proper datetime is uzed to handle datest.
+        :return: the normalized date
+        :rtype: datetime
         """
-        mo = self.AWKWARD_DATE_CMP.match(strdate)
-        if mo:
-            strdate = ''.join([mo.group(3),'.',mo.group(2),'.',mo.group(1)])
-        return strdate
+        if self.AWKWARD_DATE_CMP.match(strdate):
+            return datetime.strptime(strdate, '%d.%m.%Y')
+        return datetime.strptime(strdate, '%Y.%m.%d')
 
     def parse_line(self, line):
         """
@@ -161,7 +159,8 @@ class Invoice():
         :return: the next position of cursor row,col
         :rtype: tuple of (int,int)
         """    
-        values = [self.no, self.orig_date, self.pay_due, self.total_sum]
+        values = [self.no, datetime.strftime(self.orig_date,'%Y.%m.%d'),
+                  datetime.strftime(self.pay_due,'%Y.%m.%d'), self.total_sum]
         positions = config['invo_header_ident']['value']
         row, col = list2row(worksheet, row, col, values, positions)
         return row, col
