@@ -20,7 +20,10 @@ CONF_DEFAULT_PATH = os.path.join(HOME,'.pdf2xlsx','config.txt')
 
 class JsonDict(OrderedDict):
     """
-    Simple dict class extended with serialization functions, store and load
+    OrderedDict class extended with serialization functions, store and load.
+    The configuration will be stored in an orderedDictionary, each value in it will be
+    a regular dictionary containing 'value' and 'text'. Text could be used during
+    GUI implementation, to show what is stored in the value.
     """
     def store(self, path=CONF_DEFAULT_PATH):
         """
@@ -41,12 +44,18 @@ class JsonDict(OrderedDict):
             self.update(loads(conf_in.read()))
 
 _keys = ['value', 'text']
+
+def _create_dict(values, _keys=_keys):
+    return dict(zip(_keys, values))
+
 config = JsonDict([
-    ('tmp_dir', dict(zip(_keys, ['tmp', 'tmp dir']))),
-    ('file_extension', dict(zip(_keys, ['pdf', 'file ext']))),
-    ('xlsx_name', dict(zip(_keys, ['invoices.xlsx', 'xlsx name:']))),
-    ('invo_header_ident', dict(zip(_keys, [[1,2,3,4], 'invo header pos']))),
-    ('ME', dict(zip(_keys, [['Pár', 'Darab'], 'Me category']))),
+    ('tmp_dir', _create_dict(['tmp', 'tmp dir'])),
+    ('file_extension', _create_dict(['pdf', 'file ext'])),
+    ('xlsx_name', _create_dict(['invoices.xlsx', 'xlsx name'])),
+    ('invo_header_ident', _create_dict([[1,2,3,4], 'invo header pos'])),
+    ('ME', _create_dict([['Pár', 'Darab'], 'Me category'])),
+    ('excel_path', _create_dict(
+        ['C:\\Program Files (x86)\\Microsoft Office\\Office14\\excel.exe','Excel:']))
 ])
 
 def init_conf(conf=config, cfg_path=CONF_DEFAULT_PATH):

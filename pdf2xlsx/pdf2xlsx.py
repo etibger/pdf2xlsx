@@ -12,6 +12,7 @@ import re
 from collections import namedtuple
 from PyPDF2 import PdfFileReader
 import xlsxwriter
+from subprocess import run
 from .logger import StatLogger
 from .config import config
 
@@ -401,13 +402,24 @@ def invoices2xlsx(invoices, dir='', name='Invoices01.xlsx'):
 
     workbook.close()
 
+def run_excel(xlsx_path):
+    """
+    Start up Excel, with the file from the argument. The location of the excel
+    executable should be set in the configuration
+
+    :param str xlsx_path: Path to the xlsx file to open
+    """
+    run([config['excel_path']['value'], xlsx_path])
+    
+
 def do_it( src_name, dst_dir='', xlsx_name='Invoices01.xlsx',
            tmp_dir='tmp', file_extension='.pdf'):
     """
     Main script to manage the zip to xls process. It is responsible to create/cleanup
     temporary directories and files. After zip extraction, seraches every file which
     ends with `file_extension` Then it builds up a list of invoices and writes them
-    to xlsx format.
+    to xlsx format and opens it up in the predefined xlsx_viewer. If the dst_dir happens
+    to be the same as the tmp_dir, the generated xlsx file is removed after the run.
 
     :param str src_name: path to the zip file to extract
     :param str dst_dir: path to the directory to put the generated xlsx file by default
@@ -428,10 +440,14 @@ def do_it( src_name, dst_dir='', xlsx_name='Invoices01.xlsx',
     
     invoice_list = extract_invoces(pdf_list, logger)
 
+    invoices2xlsx(invoice_list, dst_dir, name=xlsx_name)
+
+    run_excel(os.path.join(dst_dir,config['xlsx_name']['value']))
+
     _post_clean_up(tmp_dir)
 
-    invoices2xlsx(invoice_list, dst_dir, name=xlsx_name)
     print(logger)
+    
     print("script has been finished")
     return logger
         

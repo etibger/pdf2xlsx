@@ -68,7 +68,7 @@ class ConfigWindow():
         self.main_frame = ttk.Frame(self.window)
         self.main_frame.pack(padx = 5, pady = 5)
 
-        ttk.Label(self.main_frame, text = 'Configuration:').grid(row = 0, column = 0, columnspan=2, sticky = 'w')
+        ttk.Label(self.main_frame, text = 'Configuration:').grid(row=0, column=0, columnspan=2, sticky='w')
         
         row = 1
         for ce in config:
@@ -77,10 +77,10 @@ class ConfigWindow():
             row += 1
         
         ttk.Button(self.main_frame, text = 'Save',
-                   command = self.save_callback).grid(row = 6, column = 0, sticky = 'e')
+                   command = self.save_callback).grid(row=row , column=0, sticky='e')
 
         ttk.Button(self.main_frame, text = 'Accept',
-                   command = self.accept_callback).grid(row = 6, column = 1, sticky = 'w')
+                   command = self.accept_callback).grid(row=row, column=1, sticky='w')
 
     def save_callback(self):
         """
@@ -102,9 +102,9 @@ class ConfigWindow():
 class PdfXlsxGui():
     """
     Simple GUI which lets the user select the source file zip and the desitination directory
-    for the xlsx file. Contains a file dialog for selecting the zip file to work with, and
-    a file dialog to select the destination directory. There is a button to start the conversion,
-    and also a Settings button to open activate the settings window
+    for the xlsx file. Contains a file dialog for selecting the zip file to work with.
+    There is a button to start the conversion, and also a Settings button to open the
+    settings window
 
     :param master: Tk parent class
     """
@@ -123,20 +123,13 @@ class PdfXlsxGui():
         self.src_entry.insert(0, '.\\src.zip')            
         ttk.Button(self.main_frame, text = 'Browse...',
                    command = self.browse_src_callback).grid(row = 1, column = 1, sticky = 'w')
-        
-        ttk.Label(self.main_frame, text = 'Destination Directory:').grid(row = 2, column = 0, sticky = 'w')   
-        self.dest_entry = ttk.Entry(self.main_frame, width = 54)
-        self.dest_entry.grid(row = 3, column = 0, sticky = 'e')
-        self.dest_entry.insert(0, '.\\')        
-        ttk.Button(self.main_frame, text = 'Browse...',
-                   command = self.browse_dest_callback).grid(row = 3, column = 1, sticky = 'w')
               
         ttk.Button(self.main_frame, text = 'Convert to Xlsx',
-                   command = self.process_pdf).grid(row = 5, column = 0, columnspan = 2)
+                   command = self.process_pdf).grid(row = 4, column = 0, columnspan = 2)
 
 
         ttk.Button(self.main_frame, text = 'Settings',
-                   command = self.config_callback).grid(row = 6, column = 1, columnspan = 1, sticky='e')
+                   command = self.config_callback).grid(row = 5, column = 1, columnspan = 1, sticky='e')
 
         self.config_window = ConfigWindow(self.master)
 
@@ -156,15 +149,6 @@ class PdfXlsxGui():
                                           filetypes=(("zip files","*.zip"),("all files","*.*")))
         self.src_entry.delete(0, END)
         self.src_entry.insert(0, path)
-        
-    def browse_dest_callback(self):
-        """
-        Asks for the destination directory to generate the xlsx file.
-        the dest_entry attribute is updeted.
-        """
-        path = filedialog.askdirectory(initialdir = self.dest_entry.get())
-        self.dest_entry.delete(0, END)
-        self.dest_entry.insert(0, path)
 
     def process_pdf(self):
         """
@@ -172,7 +156,7 @@ class PdfXlsxGui():
         the other parameters are left for defaults.
         """
         try:
-            logger = do_it(self.src_entry.get(),self.dest_entry.get(),
+            logger = do_it(self.src_entry.get(), config['tmp_dir']['value'],
                            xlsx_name=config['xlsx_name']['value'], tmp_dir=config['tmp_dir']['value'],
                            file_extension=config['file_extension']['value'])
             
