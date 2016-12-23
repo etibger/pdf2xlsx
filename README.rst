@@ -1,6 +1,6 @@
 # pdf2xls converter
 =======================
-A framework to upen Zip a zip file which contains multiple pdf files
+A framework to open a zip file which contains multiple pdf files
 representing invoices. The invoices are parsed into Invoice and Entry (invoice
 entries) classes. These are converted to XLSX format.
 
