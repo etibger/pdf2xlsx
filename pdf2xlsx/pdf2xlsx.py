@@ -161,7 +161,7 @@ class Invoice():
         :rtype: tuple of (int,int)
         """    
         values = [self.no, self.orig_date, self.pay_due, self.total_sum]
-        positions = config['invo_header_ident']
+        positions = config['invo_header_ident']['value']
         row, col = list2row(worksheet, row, col, values, positions)
         return row, col
 
@@ -189,7 +189,7 @@ class Entry():
         self.entry_found = False
         self.tmp_str = ""
         
-        self.ME_PATTERN = "".join(['(',"|".join(config['ME']),')'])
+        self.ME_PATTERN = "".join(['(',"|".join(config['ME']['value']),')'])
         self.ENTRY_PATTERN = "".join([self.CODE_PATTERN,  #termek kod
                      "(.*)", #termek megnevezes
                      self.ME_PATTERN, # ME
@@ -386,7 +386,7 @@ def invoices2xlsx(invoices, dir='', name='Invoices01.xlsx'):
     row_invo = col_invo = row_entr = col_entr = 0
     
     labels = ["Invoice Number", "Date of Invoice", "Payment Date", "Amount"]
-    positions = config['invo_header_ident']
+    positions = config['invo_header_ident']['value']
     row_invo, col_invo = list2row(worksheet_invo, row_invo,
                                              col_invo, labels, positions)
     
@@ -437,8 +437,8 @@ def do_it( src_name, dst_dir='', xlsx_name='Invoices01.xlsx',
         
 
 def main():
-    do_it(SRC_NAME, dst_dir=DST_DIR, xlsx_name=config['xlsx_name'],
-          tmp_dir=config['tmp_dir'], file_extension=config['file_extension'])
+    do_it(SRC_NAME, dst_dir=DST_DIR, xlsx_name=config['xlsx_name']['value'],
+          tmp_dir=config['tmp_dir'][0], file_extension=config['file_extension']['value'])
 
 
 if __name__ == '__main__': main()

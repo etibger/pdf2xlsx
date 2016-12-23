@@ -1,5 +1,5 @@
 """
-Simple tkinter based gui around the pdf2xlsx.do_it function.
+Not so simple tkinter based gui around the pdf2xlsx.do_it function.
 """
 from tkinter import *
 from tkinter import ttk, filedialog, messagebox
@@ -10,27 +10,54 @@ from .config import config
 __version__ = '0.1.0'
 
 class ConfOption():
-    def __init__(self, root, name, text, row): 
-        self.name = name
-        ttk.Label(root, text=text).grid(row=row, column=0, sticky = 'w')    
+    """
+    This widget is used to place the configuration options to the ConfigWindow. It contains
+    a label to show what is the configuration and an entry with StringVar to provide override
+    possibility. The value of the config :class:`JsonDict` is converted to a string for the entry.
+    If the value of a configuration is a list, it is converted to a comma separated string.
+
+    :param Frame root: Tk parent frame
+    :param str key: Key to the "config" :class:`JsonDict`
+    :param int row: Parameter for grid window manager
+    """
+    def __init__(self, root, key, row): 
+        self.key = key
+        dict_value=config[key]
+        ttk.Label(root, text=dict_value['text']).grid(row=row, column=0, sticky = 'w')    
         self.sv = StringVar()
-        if isinstance(config[self.name],list):
-            self.sv.set(", ".join(map(str,config[self.name])))
+        if isinstance(dict_value['value'],list):
+            self.sv.set(", ".join(map(str,dict_value['value'])))
         else:        
-            self.sv.set(config[self.name])
+            self.sv.set(str(dict_value['value']))
         self.entry = ttk.Entry(root, textvariable=self.sv)
         self.entry.grid(row = row, column = 1, sticky = 'e')
 
     def update_config(self):
-        if isinstance(config[self.name],list):
-            if isinstance(config[self.name][0],int):
-                config[self.name] = list(map(int,self.sv.get().split(', ')))
+        """
+        Write the current entry value to the configuration. The original type of the
+        config value is checked, and the string is converted to this value (int, list of
+        int, list of string...)
+        """
+        if isinstance(config[self.key]['value'],list):
+            if isinstance(config[self.key]['value'][0],int):
+                config[self.key]['value'] = list(map(int,self.sv.get().split(', ')))
             else:
-                config[self.name] = self.sv.get().split(', ')
+                config[self.key]['value'] = self.sv.get().split(', ')
+        elif isinstance(config[self.key]['value'],int):
+            config[self.key]['value'] = int(self.sv.get())
         else:
-            config[self.name] = self.sv.get()
+            config[self.key]['value'] = self.sv.get()
+            
 
 class ConfigWindow():
+    """
+    Sub window for settings. The window is hidden by default, when the user clickes  to the settings
+    button it is activated. It contains the configuration options.
+    There are two buttons the Save ( which hides the window ), and the Accept, both of them updates
+    the configuration file. The configuration items are stored in a list.
+
+    :param master: Tk parent class
+    """
     def __init__(self, master):
         self.master = master
         self.window = Toplevel(self.master)
@@ -41,23 +68,13 @@ class ConfigWindow():
         self.main_frame = ttk.Frame(self.window)
         self.main_frame.pack(padx = 5, pady = 5)
 
-        ttk.Label(self.main_frame, text = 'Configuration:').grid(row = 0, column = 0, columnspan=2, sticky = 'w') 
-
-        self.conf_list.append(
-            ConfOption(root=self.main_frame, name='tmp_dir', text='tmp dir:', row=1))
+        ttk.Label(self.main_frame, text = 'Configuration:').grid(row = 0, column = 0, columnspan=2, sticky = 'w')
         
-        self.conf_list.append(
-            ConfOption(root=self.main_frame, name='file_extension', text='file ext:', row=2))
-        
-        self.conf_list.append(
-            ConfOption(root=self.main_frame, name='xlsx_name', text='xlsx name:', row=3))
-        
-        self.conf_list.append(
-            ConfOption(root=self.main_frame, name='invo_header_ident', text='invo header pos:', row=4))
-        
-        self.conf_list.append(
-            ConfOption(root=self.main_frame, name='ME', text='ME category:', row=5))
-
+        row = 1
+        for ce in config:
+            self.conf_list.append(
+                ConfOption(root=self.main_frame, key=ce, row=row))
+            row += 1
         
         ttk.Button(self.main_frame, text = 'Save',
                    command = self.save_callback).grid(row = 6, column = 0, sticky = 'e')
@@ -66,10 +83,17 @@ class ConfigWindow():
                    command = self.accept_callback).grid(row = 6, column = 1, sticky = 'w')
 
     def save_callback(self):
+        """
+        Hides the ConfigWindow and updates and stores the configuration
+        """
         self.window.withdraw()
         self.accept_callback()
 
     def accept_callback(self):
+        """
+        Goes through on every configuration item and updates them one by one. Stores the updated
+        configuration.
+        """
         for conf in self.conf_list:
             conf.update_config()
         config.store()
@@ -78,7 +102,9 @@ class ConfigWindow():
 class PdfXlsxGui():
     """
     Simple GUI which lets the user select the source file zip and the desitination directory
-    for the xlsx file.
+    for the xlsx file. Contains a file dialog for selecting the zip file to work with, and
+    a file dialog to select the destination directory. There is a button to start the conversion,
+    and also a Settings button to open activate the settings window
 
     :param master: Tk parent class
     """
@@ -115,6 +141,9 @@ class PdfXlsxGui():
         self.config_window = ConfigWindow(self.master)
 
     def config_callback(self):
+        """
+        Bring the configuration window up
+        """
         self.config_window.window.state('normal')
             
     def browse_src_callback(self):
@@ -139,13 +168,13 @@ class PdfXlsxGui():
 
     def process_pdf(self):
         """
-        Faxade for the do_it function. Only the src file and destination dir is updated
+        Facade for the do_it function. Only the src file and destination dir is updated
         the other parameters are left for defaults.
         """
         try:
             logger = do_it(self.src_entry.get(),self.dest_entry.get(),
-                           xlsx_name=config['xlsx_name'], tmp_dir=config['tmp_dir'],
-                           file_extension=config['file_extension'])
+                           xlsx_name=config['xlsx_name']['value'], tmp_dir=config['tmp_dir']['value'],
+                           file_extension=config['file_extension']['value'])
             
             messagebox.showinfo(title = 'Conversion Completed',
                             message = 'The following Invoices/Entries were found:\n{0!s}'.format(logger))

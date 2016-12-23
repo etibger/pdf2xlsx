@@ -3,6 +3,7 @@
 Configuration structure, loading and storing
 """
 from json import dumps, loads
+from collections import OrderedDict
 import os
 
 
@@ -17,7 +18,7 @@ except KeyError as e:
 
 CONF_DEFAULT_PATH = os.path.join(HOME,'.pdf2xlsx','config.txt')
 
-class JsonDict(dict):
+class JsonDict(OrderedDict):
     """
     Simple dict class extended with serialization functions, store and load
     """
@@ -39,13 +40,14 @@ class JsonDict(dict):
         with open(path, 'r', encoding="utf-8") as conf_in:
             self.update(loads(conf_in.read()))
 
-config = JsonDict({
-    'tmp_dir' : 'tmp',
-    'file_extension' : 'pdf',
-    'xlsx_name' : 'invoices.xlsx',
-    'invo_header_ident' : [1,2,3,4],
-    'ME' : ['Pár', 'Darab'],
-})
+_keys = ['value', 'text']
+config = JsonDict([
+    ('tmp_dir', dict(zip(_keys, ['tmp', 'tmp dir']))),
+    ('file_extension', dict(zip(_keys, ['pdf', 'file ext']))),
+    ('xlsx_name', dict(zip(_keys, ['invoices.xlsx', 'xlsx name:']))),
+    ('invo_header_ident', dict(zip(_keys, [[1,2,3,4], 'invo header pos']))),
+    ('ME', dict(zip(_keys, [['Pár', 'Darab'], 'Me category']))),
+])
 
 def init_conf(conf=config, cfg_path=CONF_DEFAULT_PATH):
     """
