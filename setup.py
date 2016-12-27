@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import sys
+import warnings
 
 try:
     from setuptools import setup, find_packages
@@ -8,7 +9,7 @@ except ImportError:
     from distutils.core import setup, find_packages
 
 if sys.version_info < (3, 5, 0):
-    warn("The minimum Python version supported by pdf2xlsx is 3.5.")
+    warnings.warn("The minimum Python version supported by pdf2xlsx is 3.5.")
     exit()
 
 long_description = """
@@ -21,7 +22,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version="0.1.1",
+    version="1.0.0",
 
     description="Invoice extraction from zip",
     long_description=long_description,
@@ -36,13 +37,13 @@ setup(
 
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
-        "Development Status :: 2 - Pre-Alpha",
+        "Development Status :: 5 - Production/Stable",
         "Environment :: Console",
         "Environment :: Win32 (MS Windows)",
         "Intended Audience :: End Users/Desktop",
         "License :: OSI Approved :: MIT License",
         "Natural Language :: English",
-        "Operating System :: Microsoft :: Windows",
+        "Operating System :: OS Independent",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3 :: Only",
         "Topic :: Office/Business :: Financial :: Spreadsheet",
