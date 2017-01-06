@@ -8,280 +8,16 @@ entries) classes. These are converted to XLSX format.
 import os
 import shutil
 import zipfile
-import re
 from subprocess import run
-from datetime import datetime
-from collections import namedtuple
 from PyPDF2 import PdfFileReader
 import xlsxwriter
 from .logger import StatLogger
 from .config import config
+from .invoice import Invoice, Entry, EntryTuple, invo_parser
+from .utility import list2row
 
 SRC_NAME = 'src.zip'
 DST_DIR = ''
-
-EntryTuple = namedtuple('EntryTuple', ['kod', 'nev', 'ME', 'mennyiseg', 'BEgysegar',
-                                       'Kedv', 'NEgysegar', 'osszesen', 'AFA'])
-
-def list2row(worksheet, row, col, values, positions=None):
-    """
-    Create header of the template xlsx file
-
-    :param Worksheet worksheet: Worksheet class to write info
-    :param int row: Row number to start writing
-    :param int col: Column number to start writing
-    :param list values: List of values to write in a row
-    :param list positions: Positions for each value (otpional, if not given the
-    values will be printed after each other from column 0)
-
-    :return: the next position of cursor row,col
-    :rtype: tuple of (int,int)
-    """
-    if not positions or len(positions) != len(values):
-        positions = range(len(values))
-    for val, pos in zip(values, positions):
-        worksheet.write(row, col+pos, val)
-    return row+1, col
-
-class Invoice():
-    """
-    Parse, store and write to xlsx invoce informations. Such as Invoice Number,
-    Invoice Date, Payment Date, Total Sum Price. It also contains a list of Entry,
-    which is also extracted form raw string.
-    The parsing of the raw string is controlled by three state variables: no_parsed,
-    orig_date_parsed and pay_due_parsed. These represent the structure of the pdf.
-
-    :param int no: Invoice number, default:0
-    :param str orig_date: Invoice date stored as a string YYYY.MM.DD
-    :param str pay_due: Payment Date stored as string YYYY.MM.DD
-    :param int total_sum: Total price of invoice
-    :param list entries: List of :class:`Entry` containing each entries in invoice
-
-
-    [TODO] implement state pattern for parsing ???
-    """
-
-    NO_PATTERN = '[ ]*Számla sorszáma:([0-9]{10})'
-    NO_CMP = re.compile(NO_PATTERN)
-
-    ORIG_DATE_PATTERN = ('[ ]*Számla kelte:'
-                         r'([0-9]{4}\.[0-9]{2}\.[0-9]{2}|[0-9]{2}\.[0-9]{2}\.[0-9]{4})')
-    ORIG_DATE_CMP = re.compile(ORIG_DATE_PATTERN)
-
-    PAY_DUE_PATTERN = (r'[ ]*FIZETÉSI HATÁRIDÕ:([0-9]{4}\.[0-9]{2}\.[0-9]{2}|'
-                       r'[0-9]{2}\.[0-9]{2}\.[0-9]{4})[ ]+([0-9]+\.?[0-9]*\.?[0-9]*)')
-    PAY_DUE_CMP = re.compile(PAY_DUE_PATTERN)
-
-    AWKWARD_DATE_PATTERN = r'([0-9]{2})\.([0-9]{2})\.([0-9]{4})'
-    AWKWARD_DATE_CMP = re.compile(AWKWARD_DATE_PATTERN)
-
-    def __init__(self, no=0, orig_date="", pay_due="", total_sum=0, entries=None):
-        self.id_no = no
-        self.orig_date = orig_date
-        self.pay_due = pay_due
-        self.total_sum = total_sum
-        self.entries = entries
-
-        self.id_no_parsed = False
-        self.orig_date_parsed = False
-        self.pay_due_parsed = False
-
-    def __str__(self):
-        tmp_str = '\n    '.join([str(entr) for entr in self.entries])
-        return ('Sorszam: {no}, Kelt: {orig_date}, Fizetesihatarido: {pay_due},'
-                'Vegosszeg: {total_sum}\nBejegyzesek:\n    {entry_list}'
-                '').format(**self.__dict__, entry_list=tmp_str)
-
-    def __repr__(self):
-        return ('{__class__.__name__}(no={no!r},orig_date={orig_date!r},'
-                'pay_due={pay_due!r},total_sum={total_sum!r},'
-                'entries={entries!r})').format(__class__=self.__class__, **self.__dict__)
-
-    def _normalize_str_date(self, strdate):
-        """
-        The date is represented in two different format in the pdf: YYYY.MM.DD and
-        DD.MM.YYYY. The second needs to be converted to the first one.
-
-        :param str strdate: string representation of the parsed date to normalize
-
-        :return: the normalized date
-        :rtype: datetime
-        """
-        if self.AWKWARD_DATE_CMP.match(strdate):
-            return datetime.strptime(strdate, '%d.%m.%Y')
-        return datetime.strptime(strdate, '%Y.%m.%d')
-
-    def parse_line(self, line):
-        """
-        Parse through a raw text which is supplied line-by-line. This is the structure
-        of the pdf (the brackets() indicate what should be collected):
-        <disinterested rubish>
-        Számla sorszáma: (NNNNNNNN) ...
-        <disinterested rubish>
-        Számla kelte: (YYYY.MM.DD|DD.MM.YYYY) ...
-        <disinterested rubish>
-        FIZETÉSI HATÁRIDŐ:(YYYY.MM.DD|DD.MM.YYYY) (NNN[.NNN.NNN])
-        <disinterested rubish>
-        This is structure is paresed using the three state variable, and stored inside
-        the class attributes
-
-        :param str line: The actual line to parse
-
-        :return: True when the parsing of the Invoice was started
-        :rtype: bool
-        """
-        if not self.id_no_parsed:
-            matchob = self.NO_CMP.match(line)
-            if matchob:
-                self.id_no = int(matchob.group(1))
-                self.id_no_parsed = True
-                return True
-        elif not self.orig_date_parsed:
-            matchob = self.ORIG_DATE_CMP.match(line)
-            if matchob:
-                self.orig_date = self._normalize_str_date(matchob.group(1))
-                self.orig_date_parsed = True
-                return False
-        elif not self.pay_due_parsed:
-            matchob = self.PAY_DUE_CMP.match(line)
-            if matchob:
-                self.pay_due = self._normalize_str_date(matchob.group(1))
-                self.total_sum = int(matchob.group(2).replace('.', ''))
-                self.pay_due_parsed = True
-                return False
-        return False
-
-    def xlsx_write(self, worksheet, row, col):
-        """
-        Write the invoice information to a template xlsx file.
-
-        :param Worksheet worksheet: Worksheet class to write info
-        :param int row: Row number to start writing
-        :param int col: Column number to start writing
-
-        :return: the next position of cursor row,col
-        :rtype: tuple of (int,int)
-        """
-        values = [self.id_no, datetime.strftime(self.orig_date, '%Y.%m.%d'),
-                  datetime.strftime(self.pay_due, '%Y.%m.%d'), self.total_sum]
-        positions = config['invo_header_ident']['value']
-        row, col = list2row(worksheet, row, col, values, positions)
-        return row, col
-
-
-class Entry():
-    """
-    Parse, store and write to xlsx invoice entries. The invoice informations are
-    stored in the EntryTuple namedtuple. The parsing is contolled by a state
-    variable (:entry_found:) Because the invoice entries are split into two line,
-    the tmp_str attribute is used to store the first part of the entire
-    The ME values are configurable, so they cannot be created at class level, they
-    need to be recomputed at evry instantiation
-
-    :param EntryTuple entry_tuple: The invoice entry
-    :param Invoice invo: The parent invoice containing this entry
-    """
-
-    CODE_PATTERN = '[ ]*([0-9]{6}-[0-9]{3})'
-    CODE_CMP = re.compile(CODE_PATTERN)
-
-    def __init__(self, entry_tuple=None, invo=None):
-        self.entry_tuple = entry_tuple
-        self.invo = invo
-
-        self.entry_found = False
-        self.tmp_str = ""
-
-        self.me_pattern = "".join(['(', "|".join(config['ME']['value']), ')'])
-        self.entry_pattern = "".join([self.CODE_PATTERN,  #termek kod
-                                      "(.*)", #termek megnevezes
-                                      self.me_pattern, # ME
-                                      "[ ]+([0-9]+)", # mennyiseg
-                                      r"[ ]+([0-9]+\.?[0-9]*)", # Brutto Egysegar
-                                      "[ ]+([0-9]+)%", # Kedvezmeny
-                                      r"[ ]+([0-9]+\.?[0-9]*)", # Netto Egysegar
-                                      r"[ ]+([0-9]+\.?[0-9]*\.?[0-9]*)", # Osszesen
-                                      "[ ]+([0-9]+)%",]) # Afa
-        self.entry_cmp = re.compile(self.entry_pattern)
-
-    def __str__(self):
-        return '{entry_tuple}'.format(**self.__dict__)
-
-    def __repr__(self):
-        return ('{__class__.__name__}(entry_tuple={entry_tuple!r}'
-                ')').format(__class__=self.__class__, **self.__dict__)
-
-    def line2entry(self, line):
-        """
-        Extracts entry information from the given line. Tries to search for nine different
-        group in the line. See implementation of entry_pattern. This should match the
-        following pattern:
-        NNNNNN-NNN STR+WSPACE PREDEFSTR INTEGER INTEGER-. INTEGER% INTEGER-. INTEGER-.
-        INTEGER%
-        Where:
-        N: a single digit: 0-9
-        STR+WSPACE: string containing white spaces, numbers and special characters
-        PREDEFSTR: string without white space ( predefined )
-        INTEGER: decimal number, unknown length
-        INTEGER-.: a decimal number, grouped with . by thousends e.g 1.589.674
-        INTEGER%: an integer with percentage at the end
-
-        :param str pdfline: Line to parse, this line should be begin with NNNNNNN-NNN
-
-        :return: The actual invoice entry
-        :rtype: EntryTuple
-        """
-        try:
-            matchgp = self.entry_cmp.match(line).groups()
-            return EntryTuple(matchgp[0], matchgp[1], matchgp[2],
-                              int(matchgp[3]), int(matchgp[4].replace('.', '')),
-                              int(matchgp[5]), int(matchgp[6].replace('.', '')),
-                              int(matchgp[7].replace('.', '')), int(matchgp[8]))
-        except AttributeError as exc:
-            print("Entry pattern regex didn't match for line: {}".format(line))
-            raise exc
-
-    def parse_line(self, line):
-        """
-        Parse through raw text which is supplied line-by-line. This is the structure
-        of the pdf (the brackets() indicate what should be collected):
-        n times:
-        <disinterested rubish>
-        (NNNNNN-NNN ... \n
-        ...)
-        <disinterested rubish>
-        When the Invoice code is found, an additional line is waited, and then it is
-        sent to the line2entry converter.
-
-        :param str line: The actual line to parse
-
-        :return: True when an entry was found
-        :rtype: bool
-        """
-        if self.entry_found:
-            self.entry_tuple = self.line2entry(" ".join([self.tmp_str, line]))
-            self.entry_found = False
-            return True
-        elif self.CODE_CMP.match(line):
-            self.tmp_str = line
-            self.entry_found = True
-        return False
-
-    def xlsx_write(self, worksheet, row, col):
-        """
-        Write the entry information to a template xlsx file.
-
-        :param Worksheet worksheet: Worksheet class to write info
-        :param int row: Row number to start writing
-        :param int col: Column number to start writing
-
-        :return: the next position of cursor row,col
-        :rtype: tuple of (int,int)
-        """
-        values = [self.invo.id_no] + list(self.entry_tuple._asdict().values())
-        row, col = list2row(worksheet, row, col, values)
-        return row, col
-
 
 #[TODO] Put this to a manager class???
 def pdf2rawtxt(pdfile, logger):
@@ -298,17 +34,18 @@ def pdf2rawtxt(pdfile, logger):
     """
     with open(pdfile, 'rb') as filedesc:
         tmp_input = PdfFileReader(filedesc)
-        invo = Invoice(entries=[])
-        entry = Entry(invo=invo)
-        for i in range(tmp_input.getNumPages()):
-            for line in tmp_input.getPage(i).extractText().split('\n'):
-                if invo.parse_line(line):
-                    logger.new_invo()
-                if entry.parse_line(line):
-                    invo.entries.append(entry)
-                    entry = Entry(invo=invo)
-                    logger.new_entr()
-        return invo
+        #invo = Invoice(entries=[])
+        #entry = Entry(invo=invo)
+        #for i in range(tmp_input.getNumPages()):
+        #    for line in tmp_input.getPage(i).extractText().split('\n'):
+        #        if invo.parse_line(line):
+        #            logger.new_invo()
+        #        if entry.parse_line(line):
+        #            invo.entries.append(entry)
+        #            entry = Entry(invo=invo)
+        #            logger.new_entr()
+        #return invo
+        return invo_parser(tmp_input, logger)
 
 def _init_clean_up(tmp_dir='tmp'):
     """
