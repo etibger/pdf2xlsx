@@ -24,14 +24,18 @@ class ConfOption():
     def __init__(self, root, key, row):
         self.key = key
         dict_value = config[key]
-        ttk.Label(root, text=dict_value['text']).grid(row=row, column=0, sticky = 'w')
+        ttk.Label(root, text=dict_value['text']).grid(row=row, column=0, sticky='w')
         self.sv = StringVar()
-        if isinstance(dict_value['value'],list):
-            self.sv.set(", ".join(map(str,dict_value['value'])))
+        if isinstance(dict_value['value'], list):
+            self.sv.set(", ".join(map(str, dict_value['value'])))
         else:
             self.sv.set(str(dict_value['value']))
-        self.entry = ttk.Entry(root, textvariable=self.sv)
+        self.entry = ttk.Entry(root, textvariable=self.sv, width=54)
         self.entry.grid(row=row, column=1, sticky='e')
+        if dict_value['conf_method'] == 'filedialog':
+            ttk.Button(root, text='Sel',
+                       command=self.browse_callback,
+                       width=4).grid(row=row, column=2, sticky='w')
 
     def update_config(self):
         """
@@ -49,6 +53,15 @@ class ConfOption():
         else:
             config[self.key]['value'] = self.sv.get()
 
+    def browse_callback(self):
+        """
+        Asks for the source zip file, the opened dialog filters for zip files by default
+        The src_entry attribute is updated based on selection
+        """
+        path = filedialog.askopenfilename(initialdir='.\\',
+                                          title="Choose file...",)
+        self.entry.delete(0, END)
+        self.entry.insert(0, path)
 
 class ConfigWindow():
     """
@@ -62,6 +75,7 @@ class ConfigWindow():
     def __init__(self, master):
         self.master = master
         self.window = Toplevel(self.master)
+        self.window.resizable(False, False)
         self.window.withdraw()
         self.window.protocol("WM_DELETE_WINDOW", self._on_closing)
         self.window.title('Settings...')
@@ -69,6 +83,7 @@ class ConfigWindow():
 
         self.main_frame = ttk.Frame(self.window)
         self.main_frame.pack(padx=5, pady=5)
+        self.main_frame.grid_columnconfigure(1, minsize=20, weight=1)
 
         ttk.Label(self.main_frame, text='Configuration:').grid(row=0, column=0,
                                                                columnspan=2, sticky='w')
