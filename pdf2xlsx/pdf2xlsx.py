@@ -13,11 +13,8 @@ from PyPDF2 import PdfFileReader
 import xlsxwriter
 from .logger import StatLogger
 from .config import config
-from .invoice import Invoice, Entry, EntryTuple, invo_parser
+from .invoice import EntryTuple, invo_parser
 from .utility import list2row
-
-SRC_NAME = 'src.zip'
-DST_DIR = ''
 
 #[TODO] Put this to a manager class???
 def pdf2rawtxt(pdfile, logger):
@@ -33,19 +30,7 @@ def pdf2rawtxt(pdfile, logger):
     :rtype: :class:`Invoice`
     """
     with open(pdfile, 'rb') as filedesc:
-        tmp_input = PdfFileReader(filedesc)
-        #invo = Invoice(entries=[])
-        #entry = Entry(invo=invo)
-        #for i in range(tmp_input.getNumPages()):
-        #    for line in tmp_input.getPage(i).extractText().split('\n'):
-        #        if invo.parse_line(line):
-        #            logger.new_invo()
-        #        if entry.parse_line(line):
-        #            invo.entries.append(entry)
-        #            entry = Entry(invo=invo)
-        #            logger.new_entr()
-        #return invo
-        return invo_parser(tmp_input, logger)
+        return invo_parser(PdfFileReader(filedesc), logger)
 
 def _init_clean_up(tmp_dir='tmp'):
     """
@@ -194,7 +179,7 @@ def main():
     """
     A simple wrapper around do it function, to demonstrate its usage
     """
-    do_it(SRC_NAME, dst_dir=DST_DIR, xlsx_name=config['xlsx_name']['value'],
+    do_it(src_name='src.zip', dst_dir=DST_DIR, xlsx_name=config['xlsx_name']['value'],
           tmp_dir=config['tmp_dir'][0], file_extension=config['file_extension']['value'])
 
 

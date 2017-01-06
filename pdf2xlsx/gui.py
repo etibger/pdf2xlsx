@@ -1,8 +1,9 @@
+# -*- coding: utf-8 -*-
 """
 Not so simple tkinter based gui around the pdf2xlsx.do_it function.
 """
-from tkinter import *
-from tkinter import ttk, filedialog, messagebox
+#from tkinter import *
+from tkinter import Tk, ttk, filedialog, messagebox, StringVar, Toplevel, END
 # -*- coding: utf-8 -*-
 from .pdf2xlsx import do_it
 from .config import config
@@ -22,7 +23,7 @@ class ConfOption():
     """
     def __init__(self, root, key, row):
         self.key = key
-        dict_value=config[key]
+        dict_value = config[key]
         ttk.Label(root, text=dict_value['text']).grid(row=row, column=0, sticky = 'w')
         self.sv = StringVar()
         if isinstance(dict_value['value'],list):
@@ -30,7 +31,7 @@ class ConfOption():
         else:
             self.sv.set(str(dict_value['value']))
         self.entry = ttk.Entry(root, textvariable=self.sv)
-        self.entry.grid(row = row, column = 1, sticky = 'e')
+        self.entry.grid(row=row, column=1, sticky='e')
 
     def update_config(self):
         """
@@ -38,12 +39,12 @@ class ConfOption():
         config value is checked, and the string is converted to this value (int, list of
         int, list of string...)
         """
-        if isinstance(config[self.key]['value'],list):
-            if isinstance(config[self.key]['value'][0],int):
-                config[self.key]['value'] = list(map(int,self.sv.get().split(', ')))
+        if isinstance(config[self.key]['value'], list):
+            if isinstance(config[self.key]['value'][0], int):
+                config[self.key]['value'] = list(map(int, self.sv.get().split(', ')))
             else:
                 config[self.key]['value'] = self.sv.get().split(', ')
-        elif isinstance(config[self.key]['value'],int):
+        elif isinstance(config[self.key]['value'], int):
             config[self.key]['value'] = int(self.sv.get())
         else:
             config[self.key]['value'] = self.sv.get()
@@ -62,26 +63,27 @@ class ConfigWindow():
         self.master = master
         self.window = Toplevel(self.master)
         self.window.withdraw()
-        self.window.protocol("WM_DELETE_WINDOW", self.on_closing)
+        self.window.protocol("WM_DELETE_WINDOW", self._on_closing)
         self.window.title('Settings...')
         self.conf_list = []
 
         self.main_frame = ttk.Frame(self.window)
-        self.main_frame.pack(padx = 5, pady = 5)
+        self.main_frame.pack(padx=5, pady=5)
 
-        ttk.Label(self.main_frame, text = 'Configuration:').grid(row=0, column=0, columnspan=2, sticky='w')
+        ttk.Label(self.main_frame, text='Configuration:').grid(row=0, column=0,
+                                                               columnspan=2, sticky='w')
 
         row = 1
-        for ce in config:
+        for conf_element in config:
             self.conf_list.append(
-                ConfOption(root=self.main_frame, key=ce, row=row))
+                ConfOption(root=self.main_frame, key=conf_element, row=row))
             row += 1
 
-        ttk.Button(self.main_frame, text = 'Save',
-                   command = self.save_callback).grid(row=row , column=0, sticky='e')
+        ttk.Button(self.main_frame, text='Save',
+                   command=self.save_callback).grid(row=row, column=0, sticky='e')
 
-        ttk.Button(self.main_frame, text = 'Accept',
-                   command = self.accept_callback).grid(row=row, column=1, sticky='w')
+        ttk.Button(self.main_frame, text='Accept',
+                   command=self.accept_callback).grid(row=row, column=1, sticky='w')
 
     def save_callback(self):
         """
@@ -99,7 +101,7 @@ class ConfigWindow():
             conf.update_config()
         config.store()
 
-    def on_closing(self):
+    def _on_closing(self):
         self.window.withdraw()
 
 
@@ -119,21 +121,21 @@ class PdfXlsxGui():
         self.master.resizable(False, False)
 
         self.main_frame = ttk.Frame(self.master)
-        self.main_frame.pack(padx = 5, pady = 5)
+        self.main_frame.pack(padx=5, pady=5)
 
-        ttk.Label(self.main_frame, text = 'Source File:').grid(row = 0, column = 0, sticky = 'w')
-        self.src_entry = ttk.Entry(self.main_frame, width = 54)
-        self.src_entry.grid(row = 1, column = 0, sticky = 'e')
+        ttk.Label(self.main_frame, text='Source File:').grid(row=0, column=0, sticky='w')
+        self.src_entry = ttk.Entry(self.main_frame, width=54)
+        self.src_entry.grid(row=1, column=0, sticky='e')
         self.src_entry.insert(0, '.\\src.zip')
-        ttk.Button(self.main_frame, text = 'Browse...',
-                   command = self.browse_src_callback).grid(row = 1, column = 1, sticky = 'w')
+        ttk.Button(self.main_frame, text='Browse...',
+                   command=self.browse_src_callback).grid(row=1, column=1, sticky='w')
 
-        ttk.Button(self.main_frame, text = 'Convert to Xlsx',
-                   command = self.process_pdf).grid(row = 4, column = 0, columnspan = 2)
+        ttk.Button(self.main_frame, text='Convert to Xlsx',
+                   command=self.process_pdf).grid(row=4, column=0, columnspan=2)
 
 
-        ttk.Button(self.main_frame, text = 'Settings',
-                   command = self.config_callback).grid(row = 5, column = 1, columnspan = 1, sticky='e')
+        ttk.Button(self.main_frame, text='Settings',
+                   command=self.config_callback).grid(row=5, column=1, columnspan=1, sticky='e')
 
         self.config_window = ConfigWindow(self.master)
 
@@ -151,7 +153,7 @@ class PdfXlsxGui():
         """
         path = filedialog.askopenfilename(initialdir='.\\',
                                           title="Choose the Zip file...",
-                                          filetypes=(("zip files","*.zip"),("all files","*.*")))
+                                          filetypes=(("zip files", "*.zip"), ("all files", "*.*")))
         self.src_entry.delete(0, END)
         self.src_entry.insert(0, path)
 
@@ -161,21 +163,21 @@ class PdfXlsxGui():
         the other parameters are left for defaults.
         """
         try:
-            logger = do_it(self.src_entry.get(), config['tmp_dir']['value'],
-                           xlsx_name=config['xlsx_name']['value'], tmp_dir=config['tmp_dir']['value'],
+            logger = do_it(src_name=self.src_entry.get(),
+                           dst_dir=config['tmp_dir']['value'],
+                           xlsx_name=config['xlsx_name']['value'],
+                           tmp_dir=config['tmp_dir']['value'],
                            file_extension=config['file_extension']['value'])
-
-            messagebox.showinfo(title = 'Conversion Completed',
-                            message = """{1} Invoices were found with the following number of Entries:
-                                      {0!s}""".format(logger, len(logger.invo_list)))
-        except PermissionError as e:
-            messagebox.showerror('Exception', e)
-
-
+            tmp_str = '{1} Invoices were found with the following number of Entries:\n{0!s}'
+            messagebox.showinfo(title='Conversion Completed',
+                                message=tmp_str.format(logger, len(logger.invo_list)))
+        except PermissionError as exc:
+            messagebox.showerror('Exception', exc)
 
 def main():
     root = Tk()
     gui = PdfXlsxGui(root)
     root.mainloop()
 
-if __name__ == '__main__' : main()
+if __name__ == '__main__':
+    main()

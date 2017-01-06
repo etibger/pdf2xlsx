@@ -3,7 +3,7 @@
 Configuration structure, loading and storing
 """
 from json import dumps, loads
-from collections import OrderedDict
+from collections import OrderedDict, Mapping
 import os
 
 
@@ -12,11 +12,11 @@ Calculate path to store config at
 """
 try:
     HOME = os.environ['HOME']
-except KeyError as e:
+except KeyError:
     print("Home envirnment variable not set, use current working directory for config")
     HOME = os.getcwd()
 
-CONF_DEFAULT_PATH = os.path.join(HOME,'.pdf2xlsx','config.txt')
+CONF_DEFAULT_PATH = os.path.join(HOME, '.pdf2xlsx', 'config.txt')
 
 class JsonDict(OrderedDict):
     """
@@ -25,6 +25,17 @@ class JsonDict(OrderedDict):
     a regular dictionary containing 'value' and 'text'. Text could be used during
     GUI implementation, to show what is stored in the value.
     """
+
+    @classmethod
+    def _update2(cls, dictionary, update):
+        for keys, values in update.items():
+            if isinstance(values, Mapping):
+                tmp_dict = cls._update2(dictionary.get(keys, {}), values)
+                dictionary[keys] = tmp_dict
+            else:
+                dictionary[keys] = update[keys]
+        return dictionary
+
     def store(self, path=CONF_DEFAULT_PATH):
         """
         Store the actual configuration to config file (path)
@@ -41,22 +52,23 @@ class JsonDict(OrderedDict):
         :param str path: Path and filename of the config file
         """
         with open(path, 'r', encoding="utf-8") as conf_in:
-            self.update(loads(conf_in.read()))
+            self._update2(self, loads(conf_in.read()))
 
-_keys = ['value', 'text']
+_KEYS = ('value', 'text', 'conf_method')
 
-def _create_dict(values, _keys=_keys):
+def _create_dict(values, _keys=_KEYS):
     return dict(zip(_keys, values))
 
 config = JsonDict([
-    ('tmp_dir', _create_dict(['tmp', 'tmp dir'])),
-    ('file_extension', _create_dict(['pdf', 'file ext'])),
-    ('xlsx_name', _create_dict(['invoices.xlsx', 'xlsx name'])),
-    ('invo_header_ident', _create_dict([[1,2,3,4], 'invo header pos'])),
-    ('ME', _create_dict([['Pár', 'Darab'], 'Me category'])),
+    ('tmp_dir', _create_dict(['tmp', 'tmp dir', 'Entry'])),
+    ('file_extension', _create_dict(['pdf', 'file ext', 'Entry'])),
+    ('xlsx_name', _create_dict(['invoices.xlsx', 'xlsx name', 'Entry'])),
+    ('invo_header_ident', _create_dict([[1, 2, 3, 4], 'invo header pos', 'Entry'])),
+    ('ME', _create_dict([['Pár', 'Darab'], 'Me category', 'Entry'])),
     ('excel_path', _create_dict(
-        ['C:\\Program Files (x86)\\Microsoft Office\\Office14\\excel.exe','Excel:']))
+        [r'C:\Program Files (x86)\Microsoft Office\Office14\excel.exe', 'Excel:', 'filedialog']))
 ])
+
 
 def init_conf(conf=config, cfg_path=CONF_DEFAULT_PATH):
     """
@@ -66,7 +78,7 @@ def init_conf(conf=config, cfg_path=CONF_DEFAULT_PATH):
     """
     try:
         conf.load(cfg_path)
-    except FileNotFoundError as e:
+    except FileNotFoundError:
         cfg_dir, cfg_name = os.path.split(cfg_path)
         try:
             os.mkdir(cfg_dir)

@@ -6,7 +6,6 @@ Classes for different invoce types
 import re
 from collections import namedtuple
 from datetime import datetime
-from PyPDF2 import PdfFileReader
 from .config import config
 from .utility import list2row
 
