@@ -5,7 +5,7 @@ Not so simple tkinter based gui around the pdf2xlsx.do_it function.
 #from tkinter import *
 from tkinter import Tk, ttk, filedialog, messagebox, StringVar, Toplevel, END
 # -*- coding: utf-8 -*-
-from .pdf2xlsx import do_it
+from .managment import do_it
 from .config import config
 
 __version__ = '0.2.0'

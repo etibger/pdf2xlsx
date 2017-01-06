@@ -179,7 +179,7 @@ def main():
     """
     A simple wrapper around do it function, to demonstrate its usage
     """
-    do_it(src_name='src.zip', dst_dir=DST_DIR, xlsx_name=config['xlsx_name']['value'],
+    do_it(src_name='src.zip', dst_dir='', xlsx_name=config['xlsx_name']['value'],
           tmp_dir=config['tmp_dir'][0], file_extension=config['file_extension']['value'])
 
 
