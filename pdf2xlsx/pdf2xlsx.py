@@ -9,11 +9,11 @@ import os
 import shutil
 import zipfile
 import re
+from subprocess import run
+from datetime import datetime
 from collections import namedtuple
 from PyPDF2 import PdfFileReader
 import xlsxwriter
-from subprocess import run
-from datetime import datetime
 from .logger import StatLogger
 from .config import config
 
@@ -21,23 +21,26 @@ SRC_NAME = 'src.zip'
 DST_DIR = ''
 
 EntryTuple = namedtuple('EntryTuple', ['kod', 'nev', 'ME', 'mennyiseg', 'BEgysegar',
-                             'Kedv', 'NEgysegar', 'osszesen', 'AFA'])
+                                       'Kedv', 'NEgysegar', 'osszesen', 'AFA'])
 
-def list2row(worksheet, row, col, values=[], positions=[]):
+def list2row(worksheet, row, col, values, positions=None):
     """
     Create header of the template xlsx file
 
     :param Worksheet worksheet: Worksheet class to write info
     :param int row: Row number to start writing
     :param int col: Column number to start writing
+    :param list values: List of values to write in a row
+    :param list positions: Positions for each value (otpional, if not given the
+    values will be printed after each other from column 0)
 
     :return: the next position of cursor row,col
     :rtype: tuple of (int,int)
     """
     if not positions or len(positions) != len(values):
         positions = range(len(values))
-    for v,p in zip(values,positions):
-        worksheet.write(row, col+p, v)
+    for val, pos in zip(values, positions):
+        worksheet.write(row, col+pos, val)
     return row+1, col
 
 class Invoice():
@@ -54,32 +57,32 @@ class Invoice():
     :param int total_sum: Total price of invoice
     :param list entries: List of :class:`Entry` containing each entries in invoice
 
-    
+
     [TODO] implement state pattern for parsing ???
     """
-    
+
     NO_PATTERN = '[ ]*Számla sorszáma:([0-9]{10})'
     NO_CMP = re.compile(NO_PATTERN)
-    
+
     ORIG_DATE_PATTERN = ('[ ]*Számla kelte:'
-                         '([0-9]{4}\.[0-9]{2}\.[0-9]{2}|[0-9]{2}\.[0-9]{2}\.[0-9]{4})')
+                         r'([0-9]{4}\.[0-9]{2}\.[0-9]{2}|[0-9]{2}\.[0-9]{2}\.[0-9]{4})')
     ORIG_DATE_CMP = re.compile(ORIG_DATE_PATTERN)
-    
-    PAY_DUE_PATTERN = ('[ ]*FIZETÉSI HATÁRIDÕ:([0-9]{4}\.[0-9]{2}\.[0-9]{2}|'
-                       '[0-9]{2}\.[0-9]{2}\.[0-9]{4})[ ]+([0-9]+\.?[0-9]*\.?[0-9]*)')
+
+    PAY_DUE_PATTERN = (r'[ ]*FIZETÉSI HATÁRIDÕ:([0-9]{4}\.[0-9]{2}\.[0-9]{2}|'
+                       r'[0-9]{2}\.[0-9]{2}\.[0-9]{4})[ ]+([0-9]+\.?[0-9]*\.?[0-9]*)')
     PAY_DUE_CMP = re.compile(PAY_DUE_PATTERN)
-    
-    AWKWARD_DATE_PATTERN = '([0-9]{2})\.([0-9]{2})\.([0-9]{4})'
+
+    AWKWARD_DATE_PATTERN = r'([0-9]{2})\.([0-9]{2})\.([0-9]{4})'
     AWKWARD_DATE_CMP = re.compile(AWKWARD_DATE_PATTERN)
-    
+
     def __init__(self, no=0, orig_date="", pay_due="", total_sum=0, entries=None):
-        self.no = no
+        self.id_no = no
         self.orig_date = orig_date
         self.pay_due = pay_due
         self.total_sum = total_sum
         self.entries = entries
 
-        self.no_parsed = False
+        self.id_no_parsed = False
         self.orig_date_parsed = False
         self.pay_due_parsed = False
 
@@ -87,14 +90,14 @@ class Invoice():
         tmp_str = '\n    '.join([str(entr) for entr in self.entries])
         return ('Sorszam: {no}, Kelt: {orig_date}, Fizetesihatarido: {pay_due},'
                 'Vegosszeg: {total_sum}\nBejegyzesek:\n    {entry_list}'
-                '').format(**self.__dict__,entry_list=tmp_str)
+                '').format(**self.__dict__, entry_list=tmp_str)
 
     def __repr__(self):
         return ('{__class__.__name__}(no={no!r},orig_date={orig_date!r},'
                 'pay_due={pay_due!r},total_sum={total_sum!r},'
                 'entries={entries!r})').format(__class__=self.__class__, **self.__dict__)
 
-    def _normalize_str_date(self,strdate):
+    def _normalize_str_date(self, strdate):
         """
         The date is represented in two different format in the pdf: YYYY.MM.DD and
         DD.MM.YYYY. The second needs to be converted to the first one.
@@ -121,29 +124,29 @@ class Invoice():
         <disinterested rubish>
         This is structure is paresed using the three state variable, and stored inside
         the class attributes
-        
+
         :param str line: The actual line to parse
 
         :return: True when the parsing of the Invoice was started
         :rtype: bool
         """
-        if not self.no_parsed:
-            mo = self.NO_CMP.match(line)
-            if mo:
-                self.no = int(mo.group(1))
-                self.no_parsed = True
+        if not self.id_no_parsed:
+            matchob = self.NO_CMP.match(line)
+            if matchob:
+                self.id_no = int(matchob.group(1))
+                self.id_no_parsed = True
                 return True
         elif not self.orig_date_parsed:
-            mo = self.ORIG_DATE_CMP.match(line)
-            if mo:
-                self.orig_date = self._normalize_str_date(mo.group(1))
+            matchob = self.ORIG_DATE_CMP.match(line)
+            if matchob:
+                self.orig_date = self._normalize_str_date(matchob.group(1))
                 self.orig_date_parsed = True
                 return False
         elif not self.pay_due_parsed:
-            mo = self.PAY_DUE_CMP.match(line)
-            if mo:
-                self.pay_due = self._normalize_str_date(mo.group(1))
-                self.total_sum = int(mo.group(2).replace('.',''))
+            matchob = self.PAY_DUE_CMP.match(line)
+            if matchob:
+                self.pay_due = self._normalize_str_date(matchob.group(1))
+                self.total_sum = int(matchob.group(2).replace('.', ''))
                 self.pay_due_parsed = True
                 return False
         return False
@@ -158,9 +161,9 @@ class Invoice():
 
         :return: the next position of cursor row,col
         :rtype: tuple of (int,int)
-        """    
-        values = [self.no, datetime.strftime(self.orig_date,'%Y.%m.%d'),
-                  datetime.strftime(self.pay_due,'%Y.%m.%d'), self.total_sum]
+        """
+        values = [self.id_no, datetime.strftime(self.orig_date, '%Y.%m.%d'),
+                  datetime.strftime(self.pay_due, '%Y.%m.%d'), self.total_sum]
         positions = config['invo_header_ident']['value']
         row, col = list2row(worksheet, row, col, values, positions)
         return row, col
@@ -181,26 +184,25 @@ class Entry():
 
     CODE_PATTERN = '[ ]*([0-9]{6}-[0-9]{3})'
     CODE_CMP = re.compile(CODE_PATTERN)
-    
+
     def __init__(self, entry_tuple=None, invo=None):
         self.entry_tuple = entry_tuple
         self.invo = invo
 
         self.entry_found = False
         self.tmp_str = ""
-        
-        self.ME_PATTERN = "".join(['(',"|".join(config['ME']['value']),')'])
-        self.ENTRY_PATTERN = "".join([self.CODE_PATTERN,  #termek kod
-                     "(.*)", #termek megnevezes
-                     self.ME_PATTERN, # ME
-                     "[ ]+([0-9]+)", # mennyiseg
-                     "[ ]+([0-9]+\.?[0-9]*)", # Brutto Egysegar
-                     "[ ]+([0-9]+)%", # Kedvezmeny
-                     "[ ]+([0-9]+\.?[0-9]*)", # Netto Egysegar
-                     "[ ]+([0-9]+\.?[0-9]*\.?[0-9]*)", # Osszesen
-                     "[ ]+([0-9]+)%", # Afa
-        ])
-        self.ENTRY_CMP = re.compile(self.ENTRY_PATTERN)
+
+        self.me_pattern = "".join(['(', "|".join(config['ME']['value']), ')'])
+        self.entry_pattern = "".join([self.CODE_PATTERN,  #termek kod
+                                      "(.*)", #termek megnevezes
+                                      self.me_pattern, # ME
+                                      "[ ]+([0-9]+)", # mennyiseg
+                                      r"[ ]+([0-9]+\.?[0-9]*)", # Brutto Egysegar
+                                      "[ ]+([0-9]+)%", # Kedvezmeny
+                                      r"[ ]+([0-9]+\.?[0-9]*)", # Netto Egysegar
+                                      r"[ ]+([0-9]+\.?[0-9]*\.?[0-9]*)", # Osszesen
+                                      "[ ]+([0-9]+)%",]) # Afa
+        self.entry_cmp = re.compile(self.entry_pattern)
 
     def __str__(self):
         return '{entry_tuple}'.format(**self.__dict__)
@@ -209,10 +211,10 @@ class Entry():
         return ('{__class__.__name__}(entry_tuple={entry_tuple!r}'
                 ')').format(__class__=self.__class__, **self.__dict__)
 
-    def line2entry(self,line):
+    def line2entry(self, line):
         """
         Extracts entry information from the given line. Tries to search for nine different
-        group in the line. See implementation of ENTRY_PATTERN. This should match the
+        group in the line. See implementation of entry_pattern. This should match the
         following pattern:
         NNNNNN-NNN STR+WSPACE PREDEFSTR INTEGER INTEGER-. INTEGER% INTEGER-. INTEGER-.
         INTEGER%
@@ -230,16 +232,16 @@ class Entry():
         :rtype: EntryTuple
         """
         try:
-            tg = self.ENTRY_CMP.match(line).groups()
-            return EntryTuple(tg[0], tg[1], tg[2],
-                         int(tg[3]), int(tg[4].replace('.','')),
-                         int(tg[5]), int(tg[6].replace('.','')),
-                         int(tg[7].replace('.','')), int(tg[8]))
-        except AttributeError as e:
-            print("Entry pattern regex didn't match for line: {}".format(pdfline))
-            raise e
+            matchgp = self.entry_cmp.match(line).groups()
+            return EntryTuple(matchgp[0], matchgp[1], matchgp[2],
+                              int(matchgp[3]), int(matchgp[4].replace('.', '')),
+                              int(matchgp[5]), int(matchgp[6].replace('.', '')),
+                              int(matchgp[7].replace('.', '')), int(matchgp[8]))
+        except AttributeError as exc:
+            print("Entry pattern regex didn't match for line: {}".format(line))
+            raise exc
 
-    def parse_line(self,line):
+    def parse_line(self, line):
         """
         Parse through raw text which is supplied line-by-line. This is the structure
         of the pdf (the brackets() indicate what should be collected):
@@ -250,7 +252,7 @@ class Entry():
         <disinterested rubish>
         When the Invoice code is found, an additional line is waited, and then it is
         sent to the line2entry converter.
-        
+
         :param str line: The actual line to parse
 
         :return: True when an entry was found
@@ -276,7 +278,7 @@ class Entry():
         :return: the next position of cursor row,col
         :rtype: tuple of (int,int)
         """
-        values = [self.invo.no] + list(self.entry_tuple._asdict().values())
+        values = [self.invo.id_no] + list(self.entry_tuple._asdict().values())
         row, col = list2row(worksheet, row, col, values)
         return row, col
 
@@ -294,15 +296,15 @@ def pdf2rawtxt(pdfile, logger):
     :return: The invoice entry filled up with the information from pdf file
     :rtype: :class:`Invoice`
     """
-    with open(pdfile, 'rb') as fd:
-        tmp_input = PdfFileReader(fd)
+    with open(pdfile, 'rb') as filedesc:
+        tmp_input = PdfFileReader(filedesc)
         invo = Invoice(entries=[])
         entry = Entry(invo=invo)
         for i in range(tmp_input.getNumPages()):
             for line in tmp_input.getPage(i).extractText().split('\n'):
                 if invo.parse_line(line):
                     logger.new_invo()
-                if(entry.parse_line(line)):
+                if entry.parse_line(line):
                     invo.entries.append(entry)
                     entry = Entry(invo=invo)
                     logger.new_entr()
@@ -311,30 +313,30 @@ def pdf2rawtxt(pdfile, logger):
 def _init_clean_up(tmp_dir='tmp'):
     """
     Create tmp directory, delete it first if it already exists, if possible
-    
+
     :param str tmp_dir: this is the directory to work during the execution
     """
     try:
         shutil.rmtree(tmp_dir)
-    except FileNotFoundError as e:
+    except FileNotFoundError:
         #Do not print any silly message as this is the expected behaviour
         pass
     finally:
         os.mkdir(tmp_dir)
 
-def extract_zip(src_name, dir):
+def extract_zip(src_name, directory):
     """
     Extract the pdf files from the zip, there is no sanity check for the arguments
     :param str src_name: Path to a zip file to extract
     :param str dir: Path to the target directory to extract the zip file
     """
     with zipfile.ZipFile(src_name) as myzip:
-        myzip.extractall(dir)
+        myzip.extractall(directory)
 
-def get_pdf_files(dir, extension='.pdf'):
+def get_pdf_files(directory, extension='.pdf'):
     """
     Walks through the given **dir** and collects every files with **extension**
-    
+
     :param str dir: the root directory to start the walk
     :param str extension: '.pdf' by default, if the file has this extension it is selected
 
@@ -342,7 +344,7 @@ def get_pdf_files(dir, extension='.pdf'):
     :rtype: list of str
     """
     pdf_list = []
-    for dir_path, _dummy, file_list in os.walk(dir):
+    for dir_path, _dummy, file_list in os.walk(directory):
         for filename in file_list:
             if filename.endswith(extension):
                 pdf_list.append(os.path.join(dir_path, filename))
@@ -352,7 +354,7 @@ def extract_invoces(pdf_list, logger):
     """
     Get the invoices from the pdf files in th pdf_list
     Wrapper around the pdf2rawtxt call
-    
+
     :param list pdf_list: List of pdf files path to process.
     :param logger: :class:`StatLogger`, collect statistical data about parsing
 
@@ -367,32 +369,32 @@ def extract_invoces(pdf_list, logger):
 def _post_clean_up(tmp_dir='tmp'):
     """
     Cleanup after execution, remove the extracted zip file and tmp directory
-    
+
     :param str tmp_dir: Temporary directory to clean_up
     """
     shutil.rmtree(tmp_dir)
-    
 
-def invoices2xlsx(invoices, dir='', name='Invoices01.xlsx'):
+
+def invoices2xlsx(invoices, directory='', name='Invoices01.xlsx'):
     """
     Write invoice information to xlsx template file. Go through every invoce and
     write them out. Simple. Utilizes the xlsxwriter module
 
     :param invoices list of Invocie: Representation of invoices from the pdf files
     """
-    workbook = xlsxwriter.Workbook(os.path.join(dir,name))
+    workbook = xlsxwriter.Workbook(os.path.join(directory, name))
     worksheet_invo = workbook.add_worksheet()
     worksheet_entr = workbook.add_worksheet()
     row_invo = col_invo = row_entr = col_entr = 0
-    
+
     labels = ["Invoice Number", "Date of Invoice", "Payment Date", "Amount"]
     positions = config['invo_header_ident']['value']
     row_invo, col_invo = list2row(worksheet_invo, row_invo,
-                                             col_invo, labels, positions)
-    
+                                  col_invo, labels, positions)
+
     labels = ["Invoice Number"] + list(EntryTuple._fields)
     row_entr, col_entr = list2row(worksheet_entr, row_entr,
-                                             col_entr, labels)
+                                  col_entr, labels)
     #[TODO] there is no specification how to write out invocie entries yet
     for invo in invoices:
         row_invo, col_invo = invo.xlsx_write(worksheet_invo, row_invo, col_invo)
@@ -409,10 +411,10 @@ def run_excel(xlsx_path):
     :param str xlsx_path: Path to the xlsx file to open
     """
     run([config['excel_path']['value'], xlsx_path])
-    
 
-def do_it( src_name, dst_dir='', xlsx_name='Invoices01.xlsx',
-           tmp_dir='tmp', file_extension='.pdf'):
+
+def do_it(src_name, dst_dir='', xlsx_name='Invoices01.xlsx',
+          tmp_dir='tmp', file_extension='.pdf'):
     """
     Main script to manage the zip to xls process. It is responsible to create/cleanup
     temporary directories and files. After zip extraction, seraches every file which
@@ -433,28 +435,31 @@ def do_it( src_name, dst_dir='', xlsx_name='Invoices01.xlsx',
 
     extract_zip(src_name, tmp_dir)
 
-    pdf_list = get_pdf_files(os.path.join(os.getcwd(),tmp_dir), file_extension)
+    pdf_list = get_pdf_files(os.path.join(os.getcwd(), tmp_dir), file_extension)
 
     logger = StatLogger()
-    
+
     invoice_list = extract_invoces(pdf_list, logger)
 
     invoices2xlsx(invoice_list, dst_dir, name=xlsx_name)
 
-    run_excel(os.path.join(dst_dir,config['xlsx_name']['value']))
+    run_excel(os.path.join(dst_dir, config['xlsx_name']['value']))
 
     _post_clean_up(tmp_dir)
 
     print(logger)
-    
+
     print("script has been finished")
     return logger
-        
+
 
 def main():
+    """
+    A simple wrapper around do it function, to demonstrate its usage
+    """
     do_it(SRC_NAME, dst_dir=DST_DIR, xlsx_name=config['xlsx_name']['value'],
           tmp_dir=config['tmp_dir'][0], file_extension=config['file_extension']['value'])
 
 
-if __name__ == '__main__': main()
-
+if __name__ == '__main__':
+    main()
