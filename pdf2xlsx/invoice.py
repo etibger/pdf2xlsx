@@ -42,11 +42,9 @@ def invo_parser(pdf_file, logger):
                 tmp = get_invo_type(line)
                 if get_invo_type(line):
                     invoice_type_found = True
-                    print("Header found, invo : {0[0]}, entry : {0[1]}".format(tmp))
                     invo_cls, entry_cls = tmp
                     invo = invo_cls(entries=list())
                     entry = entry_cls(invo=invo)
-    print(invo)
     return invo
 
 EntryTuple = namedtuple('EntryTuple', ['kod', 'nev', 'ME', 'mennyiseg', 'BEgysegar',
