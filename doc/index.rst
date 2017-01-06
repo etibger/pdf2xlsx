@@ -15,16 +15,47 @@ show detailes about the process.
 
 `The project home <https://github.com/etibger/pdf2xlsx>`_.
 
+
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
-   pdf2xlsx.rst
-   gui.rst
-   logger.rst
-   config.rst
+pdf2xlsx
+========
 
+.. automodule:: pdf2xlsx.pdf2xlsx
+   :members:
 
+invoice
+=======
+
+.. automodule:: pdf2xlsx.invoice
+   :members:
+
+gui
+===
+
+.. automodule:: pdf2xlsx.gui
+   :members:
+
+logger
+======
+
+.. automodule:: pdf2xlsx.logger
+   :members:
+
+config
+======
+
+.. automodule:: pdf2xlsx.config
+   :members:
+
+utility
+=======
+
+.. automodule:: pdf2xlsx.utility
+   :members:
 
 Indices and tables
 ==================
