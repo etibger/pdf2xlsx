@@ -2,9 +2,7 @@
 """
 Not so simple tkinter based gui around the pdf2xlsx.do_it function.
 """
-#from tkinter import *
 from tkinter import Tk, ttk, filedialog, messagebox, StringVar, Toplevel, END
-# -*- coding: utf-8 -*-
 from .managment import do_it
 from .config import config
 
