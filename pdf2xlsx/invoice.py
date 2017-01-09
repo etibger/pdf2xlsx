@@ -383,8 +383,8 @@ class CreditInvoice(Invoice):
         :return: the next position of cursor row,col
         :rtype: tuple of (int,int)
         """
-        values = [self.id_no, datetime.strftime(self.orig_date, '%Y.%m.%d'),
-                  self.orig_invo_no, self.total_sum]
+        values = [self.id_no,"Credit note",
+                  "EREDETI: " + str(self.orig_invo_no), self.total_sum]
         positions = config['invo_header_ident']['value']
         row, col = list2row(worksheet, row, col, values, positions)
         return row, col
