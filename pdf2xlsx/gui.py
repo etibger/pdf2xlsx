@@ -182,8 +182,8 @@ class PdfXlsxGui():
                            tmp_dir=config['tmp_dir']['value'],
                            file_extension=config['file_extension']['value'])
             tmp_str = '{1} Invoices were found with the following number of Entries:\n{0!s}'
-            messagebox.showinfo(title='Conversion Completed',
-                                message=tmp_str.format(logger, len(logger.invo_list)))
+            #messagebox.showinfo(title='Conversion Completed',
+            #                    message=tmp_str.format(logger, len(logger.invo_list)))
         except PermissionError as exc:
             messagebox.showerror('Exception', exc)
 
