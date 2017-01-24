@@ -19,5 +19,6 @@ def list2row(worksheet, row, col, values, positions=None):
     if not positions or len(positions) != len(values):
         positions = range(len(values))
     for val, pos in zip(values, positions):
-        worksheet.write(row, col+pos, val)
+        #worksheet.write(row, col+pos, val)
+        worksheet.cell(row=row+1, column=col+pos+1, value=val)
     return row+1, col

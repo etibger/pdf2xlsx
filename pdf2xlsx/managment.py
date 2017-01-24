@@ -10,7 +10,7 @@ import shutil
 import zipfile
 from subprocess import run
 from PyPDF2 import PdfFileReader
-import xlsxwriter
+from openpyxl import Workbook
 from .logger import StatLogger
 from .config import config
 from .invoice import EntryTuple, invo_parser
@@ -100,13 +100,13 @@ def _post_clean_up(tmp_dir='tmp'):
 def invoices2xlsx(invoices, directory='', name='Invoices01.xlsx'):
     """
     Write invoice information to xlsx template file. Go through every invoce and
-    write them out. Simple. Utilizes the xlsxwriter module
+    write them out. Simple. Utilizes the openpyxl module
 
     :param invoices list of Invocie: Representation of invoices from the pdf files
     """
-    workbook = xlsxwriter.Workbook(os.path.join(directory, name))
-    worksheet_invo = workbook.add_worksheet()
-    worksheet_entr = workbook.add_worksheet()
+    workbook = Workbook()
+    worksheet_invo = workbook.active
+    worksheet_entr = workbook.create_sheet()
     row_invo = col_invo = row_entr = col_entr = 0
 
     labels = ["Invoice Number", "Date of Invoice", "Payment Date", "Amount"]
@@ -122,8 +122,10 @@ def invoices2xlsx(invoices, directory='', name='Invoices01.xlsx'):
         row_invo, col_invo = invo.xlsx_write(worksheet_invo, row_invo, col_invo)
         for entr in invo.entries:
             row_entr, col_entr = entr.xlsx_write(worksheet_entr, row_entr, col_entr)
+    #increase the invoice tab B column width to show the whole id
+    worksheet_invo.column_dimensions['B'].width = 15
 
-    workbook.close()
+    workbook.save(os.path.join(directory, name))  
 
 def run_excel(xlsx_path):
     """
