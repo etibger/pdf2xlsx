@@ -13,7 +13,7 @@ def get_invo_type(pdf_line):
     """
     TODO add title parse to decide between invoce types
     """
-    if pdf_line.startswith('HELYESB'):
+    if pdf_line.startswith('HELYESB') or pdf_line.startswith('VISSZÁRU'):
         return CreditInvoice, CreditEntry
     if pdf_line.startswith('SZÁMLA'):
         return Invoice, Entry
