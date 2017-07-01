@@ -13,10 +13,11 @@ Calculate path to store config at
 try:
     HOME = os.environ['HOME']
 except KeyError:
-    print("Home envirnment variable not set, use current working directory for config")
+    print("Home environment variable not set, use current working directory for config")
     HOME = os.getcwd()
 
 CONF_DEFAULT_PATH = os.path.join(HOME, '.pdf2xlsx', 'config.txt')
+
 
 class JsonDict(OrderedDict):
     """
@@ -56,6 +57,7 @@ class JsonDict(OrderedDict):
 
 _KEYS = ('value', 'text', 'conf_method')
 
+
 def _create_dict(values, _keys=_KEYS):
     return dict(zip(_keys, values))
 
@@ -66,7 +68,9 @@ config = JsonDict([
     ('invo_header_ident', _create_dict([[1, 2, 3, 4], 'invo header pos', 'Entry'])),
     ('ME', _create_dict([['Pár', 'Darab'], 'Me category', 'Entry'])),
     ('excel_path', _create_dict(
-        [r'C:\Program Files (x86)\Microsoft Office\Office14\excel.exe', 'Excel:', 'filedialog']))
+        [r'C:\Program Files (x86)\Microsoft Office\Office14\excel.exe', 'Excel:', 'filedialog'])),
+    ('last_path', _create_dict(
+        [r'C:\\', 'Last Dir:', 'filedialog']))
 ])
 
 
