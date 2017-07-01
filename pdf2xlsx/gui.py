@@ -2,7 +2,7 @@
 """
 Not so simple tkinter based gui around the pdf2xlsx.do_it function.
 """
-from tkinter import Tk, ttk, filedialog, messagebox, StringVar, Toplevel, OptionMenu, END
+from tkinter import Tk, ttk, filedialog, messagebox, StringVar, Toplevel, END
 import os
 from .managment import do_it
 from .config import config
@@ -142,9 +142,11 @@ class PdfXlsxGui:
         self.option_list = ["zip pdf to xlsx", "order details"]
         self.selected_task = StringVar(self.main_frame)
         self.selected_task.set("zip Pdf to xlsx")  # default value
-        self.option_selector = OptionMenu(self.main_frame, self.selected_task,
-                                          *self.option_list, command=self.update_task)
-        self.option_selector.grid(row=0, column=0, columnspan=2, sticky='n')
+
+        self.box = ttk.Combobox(self.main_frame, textvariable=self.selected_task, values=self.option_list)
+        self.box.bind("<<ComboboxSelected>>", self.update_task)
+        self.box.grid(row=0, column=0, columnspan=2)
+
         self.task_do = self.unknown_task
 
         ttk.Label(self.main_frame, text='Source File:').grid(row=1, column=0, sticky='w')
@@ -154,19 +156,19 @@ class PdfXlsxGui:
         ttk.Button(self.main_frame, text='Browse...',
                    command=self.browse_src_callback).grid(row=1, column=1, sticky='w')
 
-        ttk.Button(self.main_frame, text='Start conversioin',
-                   command=self.execute_task).grid(row=5, column=0, columnspan=2)
+        ttk.Button(self.main_frame, text='Start conversion',
+                   command=self.execute_task).grid(row=5, column=0, sticky='w')
 
         ttk.Button(self.main_frame, text='Settings',
-                   command=self.config_callback).grid(row=6, column=1, columnspan=1, sticky='e')
+                   command=self.config_callback).grid(row=5, column=1, columnspan=1, sticky='e')
 
         self.config_window = ConfigWindow(self.master)
 
-    def update_task(self, new_task):
-        print(new_task)
-        if new_task == self.option_list[0]:
+    def update_task(self, event):
+        print(event.widget.get())
+        if event.widget.get() == self.option_list[0]:
             self.task_do = self.process_pdf
-        elif new_task == self.option_list[1]:
+        elif event.widget.get() == self.option_list[1]:
             self.task_do = self.convert_xlsx
         else:
             self.task_do = self.unknown_task
@@ -212,10 +214,11 @@ class PdfXlsxGui:
             messagebox.showerror('Exception', exc)
 
     def convert_xlsx(self):
-        print("Convert those xlsx: {}".format(self.selected_task.get()))
+        print("Convert those xlsx: {}".format(self.box.get()))
 
     def unknown_task(self):
-        print("Unknown task selected: {}".format(self.selected_task.get()))
+        print("Unknown task selected: {}".format(self.box.get()))
+
 
 def main():
     root = Tk()
