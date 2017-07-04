@@ -149,7 +149,7 @@ class PdfXlsxGui:
         self.box.bind("<<ComboboxSelected>>", self.update_task)
         self.box.grid(row=0, column=0, columnspan=2)
 
-        self.task_do = self.unknown_task
+        self.task_do = self.process_pdf
 
         ttk.Label(self.main_frame, text='Source File:').grid(row=1, column=0, sticky='w')
         self.src_entry = ttk.Entry(self.main_frame, width=54)
