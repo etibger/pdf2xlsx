@@ -55,22 +55,23 @@ class JsonDict(OrderedDict):
         with open(path, 'r', encoding="utf-8") as conf_in:
             self._update2(self, loads(conf_in.read()))
 
-_KEYS = ('value', 'text', 'conf_method')
+_KEYS = ('value', 'text', 'conf_method', 'Display')
 
 
 def _create_dict(values, _keys=_KEYS):
     return dict(zip(_keys, values))
 
 config = JsonDict([
-    ('tmp_dir', _create_dict(['tmp', 'tmp dir', 'Entry'])),
-    ('file_extension', _create_dict(['pdf', 'file ext', 'Entry'])),
-    ('xlsx_name', _create_dict(['invoices.xlsx', 'xlsx name', 'Entry'])),
-    ('invo_header_ident', _create_dict([[1, 2, 3, 4], 'invo header pos', 'Entry'])),
-    ('ME', _create_dict([['Pár', 'Darab'], 'Me category', 'Entry'])),
+    ('tmp_dir', _create_dict(['tmp', 'tmp dir', 'Entry', False])),
+    ('file_extension', _create_dict(['pdf', 'file ext', 'Entry', False])),
+    ('xlsx_name', _create_dict(['invoices.xlsx', 'xlsx name', 'Entry', False])),
+    ('invo_header_ident', _create_dict([[1, 2, 3, 4], 'invo header pos', 'Entry', False])),
+    ('ME', _create_dict([['Pár', 'Darab'], 'Me category', 'Entry', True])),
     ('excel_path', _create_dict(
-        [r'C:\Program Files (x86)\Microsoft Office\Office14\excel.exe', 'Excel:', 'filedialog'])),
+        [r'C:\Program Files (x86)\Microsoft Office\Office14\excel.exe', 'Excel:', 'filedialog',
+         True])),
     ('last_path', _create_dict(
-        [r'C:\\', 'Last Dir:', 'filedialog']))
+        [r'C:\\', 'Last Dir:', 'filedialog', True]))
 ])
 
 

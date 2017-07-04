@@ -22,9 +22,9 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version="1.1.2",
+    version="1.1.5",
 
-    description="Invoice extraction from zip",
+    description="Invoice extraction from zip, order detail transformation",
     long_description=long_description,
 
     url="https://github.com/etibger/pdf2xlsx",

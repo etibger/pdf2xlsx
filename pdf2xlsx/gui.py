@@ -92,9 +92,10 @@ class ConfigWindow:
 
         row = 1
         for conf_element in config:
-            self.conf_list.append(
-                ConfOption(root=self.main_frame, key=conf_element, row=row))
-            row += 1
+            if config[conf_element]['Display'] is True:
+                self.conf_list.append(
+                    ConfOption(root=self.main_frame, key=conf_element, row=row))
+                row += 1
 
         ttk.Button(self.main_frame, text='Save',
                    command=self.save_callback).grid(row=row, column=0, sticky='e')
@@ -234,15 +235,16 @@ class PdfXlsxGui:
         print("Unknown task selected: {}".format(self.box.get()))
 
 
-
-
-
 def main():
     root = Tk()
 
     def _post_clean_up():
-        shutil.rmtree(config['tmp_dir']['value'])
-        root.destroy()
+        try:
+            shutil.rmtree(config['tmp_dir']['value'])
+        except FileNotFoundError:
+            print("You did nothing, you dummy, why did you start me up???")
+        finally:
+            root.destroy()
 
     root.protocol("WM_DELETE_WINDOW", _post_clean_up)
     gui = PdfXlsxGui(root)
