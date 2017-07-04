@@ -15,6 +15,7 @@ from .logger import StatLogger
 from .config import config
 from .invoice import EntryTuple, invo_parser
 from .utility import list2row
+from .order_detail_xlsx_parse import GetOrderDetail, read_xlsx, write_xlsx
 
 #[TODO] Put this to a manager class???
 def pdf2rawtxt(pdfile, logger):
@@ -169,12 +170,38 @@ def do_it(src_name, dst_dir='', xlsx_name='Invoices01.xlsx',
 
     run_excel(os.path.join(dst_dir, config['xlsx_name']['value']))
 
-    _post_clean_up(tmp_dir)
-
     print(logger)
 
     print("script has been finished")
     return logger
+
+
+def do_it2(src_name, dst_dir='', xlsx_name='Invoices01.xlsx',
+           tmp_dir='tmp'):
+    """
+    Main script to manage the zip to xls process. It is responsible to create/cleanup
+    temporary directories and files. After zip extraction, seraches every file which
+    ends with `file_extension` Then it builds up a list of invoices and writes them
+    to xlsx format and opens it up in the predefined xlsx_viewer. If the dst_dir happens
+    to be the same as the tmp_dir, the generated xlsx file is removed after the run.
+
+    :param str src_name: path to the zip file to extract
+    :param str dst_dir: path to the directory to put the generated xlsx file by default
+        the cwd
+    :param str tmp_dir: temporary directory to work in. **This directory is erased
+        at the beginning of the script** By default it is `tmp`
+    :param str xlsx_name: Name of the oputput file
+    """
+    _init_clean_up(tmp_dir)
+
+    order_list = read_xlsx(GetOrderDetail, src_name)
+
+    write_xlsx(order_list, filename=os.path.join(dst_dir, config['xlsx_name']['value']))
+
+    run_excel(os.path.join(dst_dir, config['xlsx_name']['value']))
+
+    print("Order detail extraction script has been finished")
+    return True
 
 
 def main():

@@ -4,7 +4,8 @@ Not so simple tkinter based gui around the pdf2xlsx.do_it function.
 """
 from tkinter import Tk, ttk, filedialog, messagebox, StringVar, Toplevel, END
 import os
-from .managment import do_it
+import shutil
+from .managment import do_it, do_it2
 from .config import config
 
 __version__ = '0.2.0'
@@ -163,13 +164,16 @@ class PdfXlsxGui:
                    command=self.config_callback).grid(row=5, column=1, columnspan=1, sticky='e')
 
         self.config_window = ConfigWindow(self.master)
+        self.filetypes = (("zip files", "*.zip"), ("all files", "*.*"))
 
     def update_task(self, event):
         print(event.widget.get())
         if event.widget.get() == self.option_list[0]:
             self.task_do = self.process_pdf
+            self.filetypes = (("zip files", "*.zip"), ("all files", "*.*"))
         elif event.widget.get() == self.option_list[1]:
             self.task_do = self.convert_xlsx
+            self.filetypes = (("xlsx files", "*.xlsx"), ("all files", "*.*"))
         else:
             self.task_do = self.unknown_task
 
@@ -187,7 +191,7 @@ class PdfXlsxGui:
         """
         path = filedialog.askopenfilename(initialdir=config['last_path']['value'],
                                           title="Choose the Zip file...",
-                                          filetypes=(("zip files", "*.zip"), ("all files", "*.*")))
+                                          filetypes=self.filetypes)
         config['last_path']['value'] = os.path.dirname(path)
         config.store()
         self.src_entry.delete(0, END)
@@ -215,13 +219,32 @@ class PdfXlsxGui:
 
     def convert_xlsx(self):
         print("Convert those xlsx: {}".format(self.box.get()))
+        try:
+            logger = do_it2(src_name=self.src_entry.get(),
+                            dst_dir=config['tmp_dir']['value'],
+                            xlsx_name=config['xlsx_name']['value'],
+                            tmp_dir=config['tmp_dir']['value'])
+            # tmp_str = '{1} Invoices were found with the following number of Entries:\n{0!s}'
+            # messagebox.showinfo(title='Conversion Completed',
+            #                    message=tmp_str.format(logger, len(logger.invo_list)))
+        except PermissionError as exc:
+            messagebox.showerror('Exception', exc)
 
     def unknown_task(self):
         print("Unknown task selected: {}".format(self.box.get()))
 
 
+
+
+
 def main():
     root = Tk()
+
+    def _post_clean_up():
+        shutil.rmtree(config['tmp_dir']['value'])
+        root.destroy()
+
+    root.protocol("WM_DELETE_WINDOW", _post_clean_up)
     gui = PdfXlsxGui(root)
     root.mainloop()
 
